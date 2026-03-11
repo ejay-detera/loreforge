@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 
-export default function Login({ status, canResetPassword }) {
+export default function Login({ status, canResetPassword, auth }) {
     const [isLogin, setIsLogin] = useState(true);
     const [isAnimating, setIsAnimating] = useState(false);
     const [passwordStrength, setPasswordStrength] = useState(0);
@@ -108,16 +108,16 @@ export default function Login({ status, canResetPassword }) {
 
     return (
         <>
-            <Head title={isLogin ? "Login" : "Sign Up"} />
-            <div className="min-h-screen bg-bg-deep-navy flex relative overflow-hidden">
+            <Head title={isLogin ? "Login" : "Register"} />
+            <div className="font-sans antialiased bg-bg-deep-navy text-text-primary-off-white min-h-screen overflow-x-hidden">
                 {/* Animated Background */}
                 <div className="fixed inset-0 z-0">
                     <div className="absolute inset-0 bg-gradient-to-br from-bg-deep-navy via-surface-dark-charcoal to-bg-deep-navy"></div>
                     <div className="absolute inset-0">
-                        {[...Array(30)].map((_, i) => (
+                        {[...Array(50)].map((_, i) => (
                             <div
                                 key={i}
-                                className="absolute animate-pulse"
+                                className="absolute bg-accent-emerald-green rounded-full opacity-0 animate-bubble"
                                 style={{
                                     left: `${Math.random() * 100}%`,
                                     top: `${Math.random() * 100}%`,
@@ -182,12 +182,11 @@ export default function Login({ status, canResetPassword }) {
 
                 {/* Main Container */}
                 <div className="relative z-10 w-full min-h-screen flex items-center justify-center px-4 sm:px-6 md:px-8 py-20">
-                    <div className="w-full max-w-6xl">
-                        <div className="bg-surface-dark-charcoal/80 backdrop-blur-lg rounded-2xl md:rounded-3xl overflow-hidden border border-border-subtle-dark/50 shadow-2xl">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px] md:min-h-[600px]">
-                                
-                                {/* Left Panel - Form */}
-                                <div className="p-6 sm:p-8 md:p-12 flex flex-col justify-center">
+                <div className="w-full max-w-6xl">
+                    <div className="bg-surface-dark-charcoal/80 backdrop-blur-lg rounded-2xl md:rounded-3xl overflow-hidden border border-border-subtle-dark/50 shadow-2xl">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px] md:min-h-[600px]">
+                            {/* Left Panel - Form */}
+                            <div className="p-6 sm:p-8 md:p-12 flex flex-col justify-center">
                                     <div className={`transition-all duration-300 ${isAnimating ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
                                         {/* Logo */}
                                         <div className="text-center mb-6 md:mb-8">
@@ -417,8 +416,8 @@ export default function Login({ status, canResetPassword }) {
                                     </div>
                                 </div>
 
-                                {/* Mobile Toggle Button */}
-                                <div className="lg:hidden p-6 bg-surface-dark-charcoal/50 border-t border-border-subtle-dark/50">
+                            {/* Mobile Toggle Button */}
+                            <div className="lg:hidden p-6 bg-surface-dark-charcoal/50 border-t border-border-subtle-dark/50">
                                     <div className="text-center">
                                         <button
                                             onClick={toggleMode}
@@ -433,11 +432,11 @@ export default function Login({ status, canResetPassword }) {
                                     </div>
                                 </div>
 
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </>
+        </div>
+            </>
     );
 }

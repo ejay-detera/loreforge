@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 
-export default function Register() {
+export default function Register({ auth }) {
     return (
         <>
             <Head title="Redirecting..." />
