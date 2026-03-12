@@ -29,7 +29,20 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        // Sanitize and validate input
+        $validated = $request->validated();
+        
+        // Additional sanitization for security
+        $sanitizedData = [
+            'username' => isset($validated['username']) ? trim(strip_tags($validated['username'])) : null,
+            'email' => isset($validated['email']) ? strtolower(trim($validated['email'])) : null,
+            'profile_url' => isset($validated['profile_url']) ? trim(strip_tags($validated['profile_url'])) : null,
+        ];
+
+        $user = $request->user();
+        
+        // Fill with sanitized data
+        $user->fill(array_filter($sanitizedData));
 
         if ($request->user()->isDirty('email')) {
             $request->user()->email_verified_at = null;

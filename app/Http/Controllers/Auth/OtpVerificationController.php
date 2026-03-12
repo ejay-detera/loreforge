@@ -45,8 +45,9 @@ class OtpVerificationController extends Controller
      */
     public function verify(Request $request): RedirectResponse
     {
-        $request->validate([
-            'otp' => 'required|string|size:6',
+        // Sanitize and validate input
+        $validated = $request->validate([
+            'otp' => 'required|string|size:6|regex:/^[0-9]+$/',
         ]);
 
         $user = $request->user();
@@ -71,8 +72,8 @@ class OtpVerificationController extends Controller
                 return back()->withErrors(['otp' => 'Verification code expired. Please request a new code.']);
             }
 
-            // Verify OTP
-            if ($request->otp !== $data['otp']) {
+            // Verify OTP against sanitized input
+            if ($validated['otp'] !== $data['otp']) {
                 return back()->withErrors(['otp' => 'Invalid verification code.']);
             }
 

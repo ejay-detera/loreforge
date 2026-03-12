@@ -29,6 +29,16 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // Sanitize and validate input
+        $validated = $request->validated();
+
+        // Additional sanitization for security
+        $sanitizedData = [
+            'email' => strtolower(trim($validated['email'])),
+            'password' => $validated['password'],
+            'remember' => $validated['remember'] ?? false,
+        ];
+
         $request->authenticate();
 
         $request->session()->regenerate();
