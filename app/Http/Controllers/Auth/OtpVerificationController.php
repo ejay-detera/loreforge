@@ -81,6 +81,7 @@ class OtpVerificationController extends Controller
             
             // Clear the session
             session()->forget('otp_token');
+            session()->forget('otp_sent_recently');
 
             return redirect()->intended(route('dashboard', absolute: false))->with('status', 'verified');
             

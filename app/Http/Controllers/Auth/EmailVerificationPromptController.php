@@ -22,6 +22,11 @@ class EmailVerificationPromptController extends Controller
             return redirect()->intended(route('dashboard', absolute: false));
         }
 
+        // Check if OTP was already sent in this session (prevent multiple sends)
+        if (session()->has('otp_sent_recently')) {
+            return Inertia::render('Auth/VerifyEmail', ['status' => 'otp-sent']);
+        }
+
         // Automatically send OTP
         $user = $request->user();
         
@@ -37,6 +42,9 @@ class EmailVerificationPromptController extends Controller
 
         // Store token in session for verification
         session(['otp_token' => $token]);
+        
+        // Mark that OTP was sent recently (prevent multiple sends for 2 minutes)
+        session(['otp_sent_recently' => true]);
 
         Mail::to($user->email)->send(new OtpVerificationMail($otp, $user->username));
         return Inertia::render('Auth/VerifyEmail', ['status' => 'otp-sent']);

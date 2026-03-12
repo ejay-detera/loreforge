@@ -2,17 +2,6 @@ import { useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Login({ status, canResetPassword }) {
-    const [isLogin, setIsLogin] = useState(true);
-    const [isAnimating, setIsAnimating] = useState(false);
-    const [passwordStrength, setPasswordStrength] = useState(0);
-    const [passwordCriteria, setPasswordCriteria] = useState({
-        length: false,
-        uppercase: false,
-        lowercase: false,
-        number: false,
-        special: false,
-    });
-export default function Login({ status, canResetPassword }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     
     const { data, setData, post, processing, errors, reset } = useForm({

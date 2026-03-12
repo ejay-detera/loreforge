@@ -20,6 +20,11 @@ class EmailVerificationNotificationController extends Controller
             return redirect()->intended(route('dashboard', absolute: false));
         }
 
+        // Check if OTP was already sent recently (rate limiting)
+        if (session()->has('otp_sent_recently')) {
+            return back()->with('status', 'otp-sent');
+        }
+
         $user = $request->user();
         
         // Generate numeric OTP (6 digits only)
@@ -34,6 +39,9 @@ class EmailVerificationNotificationController extends Controller
 
         // Store token in session for verification
         session(['otp_token' => $token]);
+        
+        // Mark that OTP was sent recently (prevent multiple sends for 2 minutes)
+        session(['otp_sent_recently' => true]);
 
         Mail::to($user->email)->send(new OtpVerificationMail($otp, $user->username));
 

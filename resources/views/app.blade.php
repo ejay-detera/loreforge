@@ -28,7 +28,7 @@
         
         @if(auth()->check())
         <script>
-            useEffect(() => {
+            document.addEventListener('DOMContentLoaded', function() {
                 const handlePageShow = (e) => {
                     if (e.persisted) {
                         // Immediately block the page visually
@@ -56,8 +56,7 @@
                 history.pushState(null, '', window.location.href);
 
                 window.addEventListener('pageshow', handlePageShow);
-                return () => window.removeEventListener('pageshow', handlePageShow);
-            }, []);
+            });
         </script>
         @endif
     </body>
