@@ -26,10 +26,14 @@ Route::middleware('auth')->group(function () {
 
 // Auth check endpoint for back button prevention
 Route::get('/auth/check', function () {
+    // Check if user is authenticated (session exists after migrate:fresh)
     if (auth()->check()) {
         return response()->json(['status' => 'authenticated']);
     } else {
-        return response()->json(['status' => 'unauthenticated'], 401);
+        // Return 401 but with proper headers for debugging
+        return response()->json(['status' => 'unauthenticated'], 401)
+            ->header('X-Debug-Auth', 'false')
+            ->header('X-Session-ID', session()->getId());
     }
 })->middleware('web');
 
