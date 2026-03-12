@@ -24,4 +24,13 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Auth check endpoint for back button prevention
+Route::get('/auth/check', function () {
+    if (auth()->check()) {
+        return response()->json(['status' => 'authenticated']);
+    } else {
+        return response()->json(['status' => 'unauthenticated'], 401);
+    }
+})->middleware('web');
+
 require __DIR__.'/auth.php';

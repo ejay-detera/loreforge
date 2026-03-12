@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory, Notifiable;
@@ -18,7 +18,7 @@ class User extends Authenticatable
      * @var list<string>
      */
     protected $fillable = [
-        'name', 'email', 'password',
+        'username', 'email', 'password', 'profile_url',
         'two_factor_secret', 'two_factor_enabled',
     ];
 
@@ -43,5 +43,14 @@ class User extends Authenticatable
             'password' => 'hashed',
             'two_factor_enabled' => 'boolean',
         ];
+    }
+
+    /**
+     * Override the default email verification notification to use OTP instead
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        // Don't send the default Laravel verification email
+        // OTP is handled by the EmailVerificationPromptController
     }
 }
