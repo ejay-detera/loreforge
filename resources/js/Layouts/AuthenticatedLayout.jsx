@@ -1,176 +1,466 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
-import Dropdown from '@/Components/Dropdown';
-import NavLink from '@/Components/NavLink';
-import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import PageTransition from '@/Components/PageTransition';
 
-export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user;
+// ─── Constellation Background (unchanged) ────────────────────────────────────
+function ConstellationBackground() {
+  const canvasRef = useRef(null);
+  const sectionRef = useRef(null);
+  const animRef = useRef(null);
 
-    const [showingNavigationDropdown, setShowingNavigationDropdown] =
-        useState(false);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const section = sectionRef.current;
+    if (!canvas || !section) return;
 
-    return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="border-b border-gray-100 bg-white">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex h-16 justify-between">
-                        <div className="flex">
-                            <div className="flex shrink-0 items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
-                                </Link>
-                            </div>
+    const MAX_DIST = 140;
+    const STAR_COUNT = 110;
 
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
-                                >
-                                    Dashboard
-                                </NavLink>
-                            </div>
-                        </div>
+    const init = () => {
+      const W = canvas.width  = section.offsetWidth;
+      const H = canvas.height = section.offsetHeight;
+      const stars = Array.from({ length: STAR_COUNT }, () => ({
+        x: Math.random() * W, y: Math.random() * H,
+        vx: (Math.random() - 0.5) * 0.18, vy: (Math.random() - 0.5) * 0.18,
+        r: 0.8 + Math.random() * 1.6,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.012 + Math.random() * 0.018,
+      }));
+      // store on ref so draw closure can access
+      canvas._stars = stars;
+    };
 
-                        <div className="hidden sm:ms-6 sm:flex sm:items-center">
-                            <div className="relative ms-3">
-                                <Dropdown>
-                                    <Dropdown.Trigger>
-                                        <span className="inline-flex rounded-md">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
-                                            >
-                                                {user.name}
+    const ctx = canvas.getContext('2d');
 
-                                                <svg
-                                                    className="-me-0.5 ms-2 h-4 w-4"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </span>
-                                    </Dropdown.Trigger>
+    const draw = () => {
+      animRef.current = requestAnimationFrame(draw);
+      const W = canvas.width, H = canvas.height;
+      const stars = canvas._stars ?? [];
+      const now = Date.now() * 0.001;
+      ctx.clearRect(0, 0, W, H);
+      stars.forEach(s => {
+        s.x += s.vx; s.y += s.vy;
+        if (s.x < 0) s.x = W; if (s.x > W) s.x = 0;
+        if (s.y < 0) s.y = H; if (s.y > H) s.y = 0;
+      });
+      for (let i = 0; i < stars.length; i++) {
+        for (let j = i + 1; j < stars.length; j++) {
+          const a = stars[i], b = stars[j];
+          const dx = a.x - b.x, dy = a.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > MAX_DIST) continue;
+          const alpha = (1 - dist / MAX_DIST) * 0.14;
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = `rgba(80,90,150,${alpha.toFixed(3)})`;
+          ctx.lineWidth = 0.6; ctx.stroke();
+        }
+      }
+      stars.forEach(s => {
+        const twinkle = 0.35 + 0.65 * (0.5 + 0.5 * Math.sin(now * s.speed * 60 + s.phase));
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200,210,255,${twinkle * 0.35})`; ctx.fill();
+      });
+    };
 
-                                    <Dropdown.Content>
-                                        <Dropdown.Link
-                                            href={route('profile.edit')}
-                                        >
-                                            Profile
-                                        </Dropdown.Link>
-                                        <Dropdown.Link
-                                            href={route('logout')}
-                                            method="post"
-                                            as="button"
-                                        >
-                                            Log Out
-                                        </Dropdown.Link>
-                                    </Dropdown.Content>
-                                </Dropdown>
-                            </div>
-                        </div>
+    window.addEventListener('resize', init);
+    setTimeout(() => { init(); draw(); }, 80);
+    return () => { cancelAnimationFrame(animRef.current); window.removeEventListener('resize', init); };
+  }, []);
 
-                        <div className="-me-2 flex items-center sm:hidden">
-                            <button
-                                onClick={() =>
-                                    setShowingNavigationDropdown(
-                                        (previousState) => !previousState,
-                                    )
-                                }
-                                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
-                            >
-                                <svg
-                                    className="h-6 w-6"
-                                    stroke="currentColor"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        className={
-                                            !showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                    <path
-                                        className={
-                                            showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+  return (
+    <div ref={sectionRef} className="absolute inset-0 w-full h-full">
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }} />
+    </div>
+  );
+}
 
-                <div
-                    className={
-                        (showingNavigationDropdown ? 'block' : 'hidden') +
-                        ' sm:hidden'
-                    }
-                >
-                    <div className="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
-                    </div>
+// ─── Nav Link ─────────────────────────────────────────────────────────────────
+function NavLink({ href, icon, label, isActive }) {
+  const [hovered, setHovered] = useState(false);
 
-                    <div className="border-t border-gray-200 pb-1 pt-4">
-                        <div className="px-4">
-                            <div className="text-base font-medium text-gray-800">
-                                {user.name}
-                            </div>
-                            <div className="text-sm font-medium text-gray-500">
-                                {user.email}
-                            </div>
-                        </div>
+  return (
+    <Link
+      href={href}
+      className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+      style={{
+        color: isActive ? '#10b981' : hovered ? '#f0ead6' : '#8899aa',
+        background: isActive ? 'rgba(16,185,129,0.1)' : hovered ? 'rgba(255,255,255,0.05)' : 'transparent',
+        fontFamily: 'Poppins, sans-serif',
+        transition: 'color 0.2s, background 0.2s',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Active indicator bar */}
+      <span
+        className="absolute bottom-0 left-1/2 rounded-full"
+        style={{
+          height: 2,
+          width: isActive ? '60%' : hovered ? '40%' : 0,
+          background: 'linear-gradient(90deg, #10b981, #059669)',
+          transform: 'translateX(-50%)',
+          transition: 'width 0.25s cubic-bezier(.22,1,.36,1)',
+          boxShadow: '0 0 8px rgba(16,185,129,0.6)',
+        }}
+      />
+      <i className={`${icon} text-sm`} style={{ color: isActive ? '#10b981' : hovered ? '#10b981' : '#6b7a99', transition: 'color 0.2s' }} />
+      <span>{label}</span>
+    </Link>
+  );
+}
 
-                        <div className="mt-3 space-y-1">
-                            <ResponsiveNavLink href={route('profile.edit')}>
-                                Profile
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink
-                                method="post"
-                                href={route('logout')}
-                                as="button"
-                            >
-                                Log Out
-                            </ResponsiveNavLink>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+// ─── Profile Dropdown ─────────────────────────────────────────────────────────
+function ProfileDropdown({ user }) {
+  const [open, setOpen] = useState(false);
+  const dropRef = useRef(null);
+  const initials = (user?.name ?? 'A').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
-            {header && (
-                <header className="bg-white shadow">
-                    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                        {header}
-                    </div>
-                </header>
-            )}
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => { if (dropRef.current && !dropRef.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
-            <main>{children}</main>
+  const menuItems = [
+    { href: route('profile.edit'), icon: 'fas fa-user-edit', label: 'Profile', color: '#8899aa' },
+  ];
+
+  return (
+    <div ref={dropRef} className="relative">
+      {/* Trigger button */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl transition-all duration-200"
+        style={{
+          background: open ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.04)',
+          border: `1px solid ${open ? 'rgba(16,185,129,0.35)' : 'rgba(255,255,255,0.08)'}`,
+          cursor: 'pointer',
+          fontFamily: 'Poppins, sans-serif',
+          transition: 'background 0.2s, border-color 0.2s',
+        }}
+      >
+        {/* Avatar */}
+        <div
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
+          style={{
+            background: 'linear-gradient(135deg, #10b981, #059669)',
+            color: '#fff',
+            boxShadow: open ? '0 0 12px rgba(16,185,129,0.4)' : 'none',
+            transition: 'box-shadow 0.2s',
+          }}
+        >
+          {initials}
         </div>
-    );
+        <span className="hidden sm:block text-sm font-medium" style={{ color: '#e8e6f0', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {user?.username ?? 'Adventurer'}
+        </span>
+        <i
+          className="fas fa-chevron-down text-xs"
+          style={{
+            color: '#6b7a99',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.25s cubic-bezier(.22,1,.36,1)',
+          }}
+        />
+      </button>
+
+      {/* Dropdown panel */}
+      <div
+        className="absolute right-0 mt-2 rounded-xl overflow-hidden"
+        style={{
+          width: 220,
+          background: 'rgba(14,18,32,0.97)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(16,185,129,0.08)',
+          backdropFilter: 'blur(16px)',
+          // animate open/close
+          opacity: open ? 1 : 0,
+          transform: open ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.97)',
+          pointerEvents: open ? 'auto' : 'none',
+          transition: 'opacity 0.2s cubic-bezier(.22,1,.36,1), transform 0.2s cubic-bezier(.22,1,.36,1)',
+          zIndex: 100,
+        }}
+      >
+        {/* User info header */}
+        <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
+              style={{ background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff' }}
+            >
+              {initials}
+            </div>
+            <div>
+              <div className="text-sm font-semibold" style={{ color: '#f0ead6', fontFamily: 'Poppins, sans-serif' }}>{user?.username}</div>
+              <div className="text-xs" style={{ color: '#6b7a99' }}>{user?.email}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Menu items */}
+        <div className="py-1.5">
+          {menuItems.map((item) => (
+            <DropdownItem key={item.label} href={item.href} icon={item.icon} label={item.label} onClick={() => setOpen(false)} />
+          ))}
+        </div>
+
+        {/* Divider + logout */}
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }} className="py-1.5">
+          <Link
+            href={route('logout')}
+            method="post"
+            as="button"
+            className="w-full"
+            onClick={() => setOpen(false)}
+          >
+            <DropdownItemInner icon="fas fa-sign-out-alt" label="Log Out" danger />
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DropdownItem({ href, icon, label, onClick }) {
+  return (
+    <Link href={href} onClick={onClick} className="block w-full">
+      <DropdownItemInner icon={icon} label={label} />
+    </Link>
+  );
+}
+
+function DropdownItemInner({ icon, label, danger = false }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      className="flex items-center gap-3 px-4 py-2.5 text-sm cursor-pointer"
+      style={{
+        color: danger ? (hovered ? '#f87171' : '#e05555') : (hovered ? '#f0ead6' : '#8899aa'),
+        background: hovered ? (danger ? 'rgba(224,85,85,0.07)' : 'rgba(255,255,255,0.04)') : 'transparent',
+        transition: 'color 0.15s, background 0.15s',
+        fontFamily: 'Poppins, sans-serif',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <i className={`${icon} w-4 text-center`} style={{ fontSize: 13, color: danger ? 'inherit' : hovered ? '#10b981' : '#6b7a99', transition: 'color 0.15s' }} />
+      {label}
+    </div>
+  );
+}
+
+// ─── Mobile Nav Drawer ────────────────────────────────────────────────────────
+function MobileDrawer({ open, navigation, currentPath, onClose }) {
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-40 md:hidden"
+        style={{
+          background: 'rgba(8,11,22,0.7)',
+          backdropFilter: 'blur(4px)',
+          opacity: open ? 1 : 0,
+          pointerEvents: open ? 'auto' : 'none',
+          transition: 'opacity 0.25s',
+        }}
+        onClick={onClose}
+      />
+      {/* Drawer */}
+      <div
+        className="fixed top-0 left-0 bottom-0 z-50 md:hidden flex flex-col"
+        style={{
+          width: 260,
+          background: 'rgba(10,14,26,0.98)',
+          borderRight: '1px solid rgba(255,255,255,0.07)',
+          backdropFilter: 'blur(20px)',
+          transform: open ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s cubic-bezier(.22,1,.36,1)',
+          boxShadow: open ? '8px 0 40px rgba(0,0,0,0.5)' : 'none',
+        }}
+      >
+        {/* Drawer header */}
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <span className="text-base font-bold" style={{ color: '#10b981', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.06em' }}>LOREFORGE</span>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg" style={{ background: 'rgba(255,255,255,0.06)', color: '#8899aa', cursor: 'pointer', border: 'none' }}>
+            <i className="fas fa-times text-sm" />
+          </button>
+        </div>
+
+        {/* Nav items */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {navigation.map((item) => {
+            const isActive = currentPath === item.href;
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                onClick={onClose}
+                className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium"
+                style={{
+                  color: isActive ? '#10b981' : '#8899aa',
+                  background: isActive ? 'rgba(16,185,129,0.1)' : 'transparent',
+                  borderLeft: `2px solid ${isActive ? '#10b981' : 'transparent'}`,
+                  fontFamily: 'Poppins, sans-serif',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <i className={`${item.icon} w-4 text-center`} style={{ color: isActive ? '#10b981' : '#6b7a99' }} />
+                {item.name}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Drawer footer */}
+        <div className="px-3 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <Link
+            href={route('logout')}
+            method="post"
+            as="button"
+            onClick={onClose}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium"
+            style={{ color: '#e05555', background: 'rgba(224,85,85,0.06)', fontFamily: 'Poppins, sans-serif', border: 'none', cursor: 'pointer' }}
+          >
+            <i className="fas fa-sign-out-alt w-4 text-center" />
+            Log Out
+          </Link>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ─── Authenticated Layout ─────────────────────────────────────────────────────
+export default function AuthenticatedLayout({ header, children }) {
+  const user = usePage().props.auth.user;
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const currentPath = usePage().url;
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const navigation = [
+    { name: 'Dashboard', href: route('dashboard'),  icon: 'fas fa-home'        },
+    { name: 'New Game',  href: route('new-game'),    icon: 'fas fa-plus-circle' },
+    { name: 'History',   href: route('history'),     icon: 'fas fa-history'     },
+    { name: 'Community', href: route('community'),   icon: 'fas fa-users'       },
+  ];
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+      `}</style>
+
+      <div className="min-h-screen bg-bg-deep-navy text-text-primary-off-white" style={{ fontFamily: 'Poppins, sans-serif' }}>
+
+        {/* ── Top Nav ── */}
+        <nav
+          className="fixed top-0 left-0 right-0 z-50"
+          style={{
+            background: scrolled ? 'rgba(10,14,26,0.95)' : 'rgba(10,14,26,0.75)',
+            borderBottom: `1px solid ${scrolled ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.06)'}`,
+            backdropFilter: 'blur(20px)',
+            transition: 'background 0.3s, border-color 0.3s, box-shadow 0.3s',
+            boxShadow: scrolled ? '0 4px 32px rgba(0,0,0,0.4)' : 'none',
+          }}
+        >
+          {/* Subtle top accent line */}
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(16,185,129,0.4), transparent)' }} />
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+
+              {/* Logo */}
+              <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
+                <div className="relative">
+                  <img
+                    src="/images/loreforge-logo.jpg"
+                    alt="LoreForge"
+                    className="h-9 w-9 rounded-lg object-cover"
+                    style={{ transition: 'transform 0.3s', boxShadow: '0 0 0 1px rgba(16,185,129,0.2)' }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(16,185,129,0.4)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 0 0 1px rgba(16,185,129,0.2)'; }}
+                  />
+                </div>
+                <span
+                  className="hidden sm:block text-lg font-bold"
+                  style={{
+                    color: '#10b981',
+                    fontFamily: 'Poppins, sans-serif',
+                    letterSpacing: '0.1em',
+                    transition: 'color 0.2s',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#34d399'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#10b981'}
+                >
+                  LOREFORGE
+                </span>
+              </Link>
+
+              {/* Desktop nav links */}
+              <div className="hidden md:flex items-center gap-1">
+                {navigation.map((item) => (
+                  <NavLink
+                    key={item.name}
+                    href={item.href}
+                    icon={item.icon}
+                    label={item.name}
+                    isActive={currentPath.startsWith(new URL(item.href, window.location.origin).pathname)}
+                  />
+                ))}
+              </div>
+
+              {/* Right side */}
+              <div className="flex items-center gap-3">
+                {/* Profile dropdown */}
+                <ProfileDropdown user={user} />
+
+                {/* Mobile hamburger */}
+                <button
+                  onClick={() => setMobileOpen(true)}
+                  className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', color: '#8899aa', transition: 'background 0.2s, color 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = '#f0ead6'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#8899aa'; }}
+                >
+                  <i className="fas fa-bars text-sm" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        {/* Mobile drawer */}
+        <MobileDrawer
+          open={mobileOpen}
+          navigation={navigation}
+          currentPath={currentPath}
+          onClose={() => setMobileOpen(false)}
+        />
+
+        {/* Page header (optional) */}
+        {header && (
+          <header className="pt-16 bg-surface-dark-charcoal/50 backdrop-blur-sm border-b border-border-subtle-dark/30">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+              {header}
+            </div>
+          </header>
+        )}
+
+        {/* Main content — push down by nav height */}
+        <main className="relative pt-16">
+          <ConstellationBackground />
+          <PageTransition>
+            {children}
+          </PageTransition>
+        </main>
+      </div>
+    </>
+  );
 }

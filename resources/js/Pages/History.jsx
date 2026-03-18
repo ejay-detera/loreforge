@@ -1,0 +1,175 @@
+import { Head } from '@inertiajs/react';
+import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+
+export default function History() {
+    const gameHistory = [
+        {
+            id: 1,
+            name: "The Dragon's Lair",
+            genre: "Fantasy",
+            date: "2024-03-15",
+            duration: "2h 15m",
+            result: "Victory",
+            score: 2450,
+            achievements: ["Dragon Slayer", "Treasure Hunter"]
+        },
+        {
+            id: 2,
+            name: "Space Station Mystery",
+            genre: "Sci-Fi",
+            date: "2024-03-14",
+            duration: "1h 45m",
+            result: "Victory",
+            score: 1820,
+            achievements: ["Detective", "Tech Expert"]
+        },
+        {
+            id: 3,
+            name: "Haunted Mansion",
+            genre: "Horror",
+            date: "2024-03-13",
+            duration: "1h 30m",
+            result: "Defeat",
+            score: 980,
+            achievements: ["Survivor"]
+        },
+        {
+            id: 4,
+            name: "Elven Forest Quest",
+            genre: "Fantasy",
+            date: "2024-03-12",
+            duration: "3h 20m",
+            result: "Victory",
+            score: 3100,
+            achievements: ["Forest Guardian", "Master Strategist"]
+        },
+        {
+            id: 5,
+            name: "Mars Colony",
+            genre: "Sci-Fi",
+            date: "2024-03-11",
+            duration: "2h 45m",
+            result: "Victory",
+            score: 2750,
+            achievements: ["Colonist", "Engineer"]
+        }
+    ];
+
+    const getGenreColor = (genre) => {
+        switch(genre) {
+            case 'Fantasy': return 'text-highlight-warm-gold bg-highlight-warm-gold/20';
+            case 'Sci-Fi': return 'text-blue-400 bg-blue-400/20';
+            case 'Horror': return 'text-red-400 bg-red-400/20';
+            default: return 'text-text-muted-cool-gray bg-surface-dark-charcoal/50';
+        }
+    };
+
+    const getResultColor = (result) => {
+        return result === 'Victory' ? 'text-green-400 bg-green-400/20' : 'text-red-400 bg-red-400/20';
+    };
+
+    return (
+        <AuthenticatedLayout>
+            <Head title="History" />
+            
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Stats Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-text-muted-cool-gray text-sm">Total Games</span>
+                            <i className="fas fa-gamepad text-accent-emerald-green"></i>
+                        </div>
+                        <div className="text-2xl font-bold text-text-primary-off-white">
+                            {gameHistory.length}
+                        </div>
+                    </div>
+                    <div className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-text-muted-cool-gray text-sm">Win Rate</span>
+                            <i className="fas fa-trophy text-highlight-warm-gold"></i>
+                        </div>
+                        <div className="text-2xl font-bold text-text-primary-off-white">
+                            {Math.round((gameHistory.filter(g => g.result === 'Victory').length / gameHistory.length) * 100)}%
+                        </div>
+                    </div>
+                    <div className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-text-muted-cool-gray text-sm">Total Score</span>
+                            <i className="fas fa-star text-blue-400"></i>
+                        </div>
+                        <div className="text-2xl font-bold text-text-primary-off-white">
+                            {gameHistory.reduce((sum, game) => sum + game.score, 0).toLocaleString()}
+                        </div>
+                    </div>
+                    <div className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-6">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-text-muted-cool-gray text-sm">Achievements</span>
+                            <i className="fas fa-medal text-purple-400"></i>
+                        </div>
+                        <div className="text-2xl font-bold text-text-primary-off-white">
+                            {gameHistory.reduce((sum, game) => sum + game.achievements.length, 0)}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Game History List */}
+                <div className="space-y-4">
+                    {gameHistory.map((game) => (
+                        <div key={game.id} className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-6 hover:border-accent-emerald-green/50 transition-all duration-300">
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-4 mb-3">
+                                        <h3 className="text-lg font-semibold text-text-primary-off-white">
+                                            {game.name}
+                                        </h3>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getGenreColor(game.genre)}`}>
+                                            {game.genre}
+                                        </span>
+                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getResultColor(game.result)}`}>
+                                            {game.result}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                        <div>
+                                            <span className="text-text-muted-cool-gray">Date</span>
+                                            <div className="text-text-primary-off-white font-medium">{game.date}</div>
+                                        </div>
+                                        <div>
+                                            <span className="text-text-muted-cool-gray">Duration</span>
+                                            <div className="text-text-primary-off-white font-medium">{game.duration}</div>
+                                        </div>
+                                        <div>
+                                            <span className="text-text-muted-cool-gray">Score</span>
+                                            <div className="text-text-primary-off-white font-medium">{game.score.toLocaleString()}</div>
+                                        </div>
+                                        <div>
+                                            <span className="text-text-muted-cool-gray">Achievements</span>
+                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                {game.achievements.map((achievement, index) => (
+                                                    <span key={index} className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded text-xs">
+                                                        {achievement}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button className="ml-4 p-2 text-text-muted-cool-gray hover:text-text-primary-off-white transition-colors duration-300">
+                                    <i className="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Load More */}
+                <div className="text-center mt-8">
+                    <button className="px-6 py-2 bg-surface-dark-charcoal/50 border border-border-subtle-dark/50 rounded-lg text-text-primary-off-white hover:border-accent-emerald-green/50 transition-all duration-300">
+                        Load More Games
+                    </button>
+                </div>
+            </div>
+        </AuthenticatedLayout>
+    );
+}

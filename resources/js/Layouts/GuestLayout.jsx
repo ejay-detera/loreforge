@@ -1,5 +1,6 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Link } from '@inertiajs/react';
+import PageTransition from '@/Components/PageTransition';
 
 export default function GuestLayout({ children }) {
     return (
@@ -11,7 +12,9 @@ export default function GuestLayout({ children }) {
             </div>
 
             <div className="mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg">
-                {children}
+                <PageTransition>
+                    {children}
+                </PageTransition>
             </div>
         </div>
     );
