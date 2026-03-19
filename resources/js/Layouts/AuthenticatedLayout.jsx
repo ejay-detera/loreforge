@@ -289,8 +289,44 @@ function DropdownItemInner({ icon, label, danger = false }) {
   );
 }
 
-// ─── Mobile Nav Drawer ────────────────────────────────────────────────────────
-function MobileDrawer({ open, navigation, currentPath, onClose }) {
+// ─── Mobile Profile Picture Button ─────────────────────────────────────────────
+function MobileProfileButton({ user }) {
+  const initials = (user?.username ?? 'A').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+
+  return (
+    <div
+      className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden"
+      style={{
+        background: user?.profile_url ? 'transparent' : 'linear-gradient(135deg, #10b981, #059669)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        cursor: 'default',
+      }}
+    >
+      {user?.profile_url ? (
+        <img 
+          src={`/storage/${user.profile_url}`} 
+          alt="Profile" 
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.target.style.display = 'none';
+            e.target.nextSibling.style.display = 'flex';
+          }}
+        />
+      ) : null}
+      {/* Fallback icon */}
+      <div 
+        className="w-full h-full flex items-center justify-center" 
+        style={{ 
+          display: user?.profile_url ? 'none' : 'flex',
+          color: '#fff' 
+        }}
+      >
+        <i className="fas fa-user text-xs" />
+      </div>
+    </div>
+  );
+}
+function MobileDrawer({ open, navigation, currentPath, onClose, user }) {
   return (
     <>
       {/* Backdrop */}
@@ -351,8 +387,59 @@ function MobileDrawer({ open, navigation, currentPath, onClose }) {
           })}
         </nav>
 
-        {/* Drawer footer */}
+        {/* Profile dropdown section in drawer */}
         <div className="px-3 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          {/* User info */}
+          <div className="flex items-center gap-3 px-3 py-2 mb-2">
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden"
+              style={{ background: user?.profile_url ? 'transparent' : 'linear-gradient(135deg,#10b981,#059669)' }}
+            >
+              {user?.profile_url ? (
+                <img 
+                  src={`/storage/${user.profile_url}`} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              {/* Fallback icon */}
+              <div 
+                className="w-full h-full flex items-center justify-center" 
+                style={{ 
+                  display: user?.profile_url ? 'none' : 'flex',
+                  color: '#fff' 
+                }}
+              >
+                <i className="fas fa-user text-xs" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-semibold" style={{ color: '#f0ead6', fontFamily: 'Poppins, sans-serif' }}>{user?.username}</div>
+              <div className="text-xs" style={{ color: '#6b7a99' }}>{user?.email}</div>
+            </div>
+          </div>
+          
+          {/* Profile menu items */}
+          <Link
+            href={route('user.profile')}
+            onClick={onClose}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium mb-1"
+            style={{
+              color: '#8899aa',
+              background: 'transparent',
+              fontFamily: 'Poppins, sans-serif',
+              transition: 'all 0.2s',
+            }}
+          >
+            <i className="fas fa-user-edit w-4 text-center" style={{ color: '#6b7a99' }} />
+            Profile
+          </Link>
+          
+          {/* Logout */}
           <Link
             href={route('logout')}
             method="post"
@@ -472,8 +559,15 @@ export default function AuthenticatedLayout({ header, children }) {
 
               {/* Right side */}
               <div className="flex items-center gap-3">
-                {/* Profile dropdown */}
-                <ProfileDropdown user={user} />
+                {/* Profile dropdown - desktop only */}
+                <div className="hidden md:block">
+                  <ProfileDropdown user={user} />
+                </div>
+
+                {/* Mobile profile picture */}
+                <div className="md:hidden">
+                  <MobileProfileButton user={user} />
+                </div>
 
                 {/* Mobile hamburger */}
                 <button
@@ -495,6 +589,7 @@ export default function AuthenticatedLayout({ header, children }) {
           open={mobileOpen}
           navigation={navigation}
           currentPath={currentPath}
+          user={user}
           onClose={() => setMobileOpen(false)}
         />
 
