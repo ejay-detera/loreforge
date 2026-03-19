@@ -18,15 +18,14 @@ Route::middleware('guest')->group(function () {
 
     Route::post('/register', [RegisteredUserController::class, 'store']);
 
-    Route::get('/login', [AuthenticatedSessionController::class, 'create'])
-        ->name('login');
-
-    Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+        ->middleware('throttle:5,1');
 
     Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
     Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:3,1')
         ->name('password.email');
 
     Route::get('/reset-password/{token}', [NewPasswordController::class, 'create'])
@@ -35,6 +34,10 @@ Route::middleware('guest')->group(function () {
     Route::post('/reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
 });
+
+// Login route needs to handle both guests and authenticated users
+Route::get('/login', [AuthenticatedSessionController::class, 'create'])
+    ->name('login');
 
 Route::middleware('auth')->group(function () {
     Route::get('/verify-email', EmailVerificationPromptController::class)

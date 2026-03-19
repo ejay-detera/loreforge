@@ -31,6 +31,9 @@
             document.addEventListener('DOMContentLoaded', function() {
                 console.log('Back prevention script loaded for:', window.location.pathname);
                 
+                // Check if we're on MFA verification page
+                const isMfaPage = window.location.pathname.includes('/mfa/verify');
+                
                 // Lock history immediately on page load
                 history.pushState(null, '', window.location.href);
                 
@@ -42,6 +45,13 @@
                         // Immediately block the page visually
                         document.body.style.display = 'none';
                         document.body.style.opacity = '0';
+                        
+                        // For MFA pages, always redirect to MFA verification
+                        if (isMfaPage) {
+                            console.log('MFA page detected from cache - redirecting to MFA verification');
+                            window.location.replace('/mfa/verify');
+                            return;
+                        }
                         
                         // Then verify with server
                         fetch('/auth/check', {
@@ -78,10 +88,26 @@
                 // Multiple event listeners for better reliability
                 window.addEventListener('pageshow', handlePageShow);
                 
+                // Enhanced popstate handler for MFA pages
+                if (isMfaPage) {
+                    window.addEventListener('popstate', function(e) {
+                        console.log('MFA page popstate detected - preventing navigation');
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        history.pushState(null, '', window.location.href);
+                    });
+                }
+                
                 // Also listen for visibility changes (another cache indicator)
                 document.addEventListener('visibilitychange', function() {
                     if (document.visibilityState === 'visible' && document.body.style.display === 'none') {
                         console.log('Page became visible after being hidden - checking session');
+                        
+                        if (isMfaPage) {
+                            window.location.replace('/mfa/verify');
+                            return;
+                        }
+                        
                         fetch('/auth/check', {
                             method: 'GET',
                             headers: { 'X-Requested-With': 'XMLHttpRequest' }

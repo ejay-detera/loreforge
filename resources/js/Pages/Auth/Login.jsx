@@ -100,8 +100,17 @@ function ConstellationBackground() {
 
 export default function Login({ status, canResetPassword }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const { props } = usePage();
+    const { props, auth } = usePage();
     const { message, type } = props;
+    
+    // Check if user is authenticated and needs MFA verification
+    useEffect(() => {
+        if (auth?.user) {
+            // User is authenticated, redirect to dashboard
+            // The server will handle MFA requirements if needed
+            window.location.href = '/dashboard';
+        }
+    }, [auth]);
     
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',

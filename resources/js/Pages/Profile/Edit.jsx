@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faShieldAlt, faKey, faTrash, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faShieldAlt, faKey, faTrash, faUser, faLock } from '@fortawesome/free-solid-svg-icons';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import DeleteUserForm from './Partials/DeleteUserForm';
+import MfaForm from './Partials/MfaForm';
 
 export default function Edit({ mustVerifyEmail, status }) {
     const [activeTab, setActiveTab] = useState('profile');
@@ -14,6 +15,7 @@ export default function Edit({ mustVerifyEmail, status }) {
     const tabs = [
         { id: 'profile', label: 'Profile', icon: faUser },
         { id: 'password', label: 'Password', icon: faKey },
+        { id: 'mfa', label: 'MFA', icon: faLock },
         { id: 'danger', label: 'Danger Zone', icon: faTrash },
     ];
 
@@ -50,7 +52,7 @@ export default function Edit({ mustVerifyEmail, status }) {
                             >
                                 <FontAwesomeIcon icon={tab.icon} className="text-xs sm:text-sm" />
                                 <span className="hidden sm:inline">{tab.label}</span>
-                                <span className="sm:hidden">{tab.label === 'Profile' ? 'Profile' : tab.label === 'Password' ? 'Pass' : 'Danger'}</span>
+                                <span className="sm:hidden">{tab.label === 'Profile' ? 'Profile' : tab.label === 'Password' ? 'Pass' : tab.label === 'MFA' ? 'MFA' : 'Danger'}</span>
                             </button>
                         ))}
                     </div>
@@ -73,6 +75,15 @@ export default function Edit({ mustVerifyEmail, status }) {
                         <div className="rounded-2xl overflow-hidden" style={{ border: '1.5px solid rgba(255,255,255,0.07)', background: 'rgba(12,16,30,0.8)', backdropFilter: 'blur(8px)' }}>
                             <div className="p-4 sm:p-6 lg:p-8">
                                 <UpdatePasswordForm className="" />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* MFA Tab */}
+                    {activeTab === 'mfa' && (
+                        <div className="rounded-2xl overflow-hidden" style={{ border: '1.5px solid rgba(255,255,255,0.07)', background: 'rgba(12,16,30,0.8)', backdropFilter: 'blur(8px)' }}>
+                            <div className="p-4 sm:p-6 lg:p-8">
+                                <MfaForm className="" />
                             </div>
                         </div>
                     )}

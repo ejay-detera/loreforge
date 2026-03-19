@@ -17,8 +17,11 @@ class RequireMfa
     {
         $user = auth()->user();
 
-        if ($user && $user->two_factor_enabled && !session('mfa_verified')) {
-            return redirect('/mfa/verify');
+        // Skip MFA check for MFA routes themselves and logout
+        $excludedRoutes = ['mfa.setup', 'mfa.verify', 'mfa.check', 'mfa.enable', 'mfa.disable', 'logout', 'login'];
+        
+        if ($user && $user->two_factor_enabled && !session('mfa_verified') && !in_array($request->route()->getName(), $excludedRoutes)) {
+            return redirect()->route('mfa.verify');
         }
 
         return $next($request);

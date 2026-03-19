@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MfaController;
 use App\Http\Middleware\SessionTimeout;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -20,9 +21,17 @@ Route::get('/user-profile', [ProfileController::class, 'edit'])->middleware('aut
 Route::post('/user-profile', [ProfileController::class, 'update'])->middleware('auth')->name('user.profile.update');
 Route::delete('/user-profile', [ProfileController::class, 'destroy'])->middleware('auth')->name('profile.destroy');
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'session.timeout'])->name('dashboard');
+// MFA Routes
+Route::get('/mfa/setup', [MfaController::class, 'setup'])->middleware('auth')->name('mfa.setup');
+Route::post('/mfa/enable', [MfaController::class, 'enable'])->middleware('auth')->name('mfa.enable');
+Route::get('/mfa/verify', [MfaController::class, 'verify'])->middleware(['auth', 'prevent.mfa.back'])->name('mfa.verify');
+Route::post('/mfa/check', [MfaController::class, 'check'])->middleware('auth')->name('mfa.check');
+Route::post('/mfa/disable', [MfaController::class, 'disable'])->middleware('auth')->name('mfa.disable');
+Route::post('/mfa/logout', [MfaController::class, 'logout'])->name('mfa.logout');
 
-Route::middleware(['auth', 'session.timeout'])->group(function () {
+Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'session.timeout', 'mfa'])->name('dashboard');
+
+Route::middleware(['auth', 'session.timeout', 'mfa'])->group(function () {
     Route::get('/update-activity', function () {
         session(['last_activity' => now()]);
         return response()->json(['status' => 'success']);
@@ -48,10 +57,16 @@ Route::get('/auth/check', function () {
     if (auth()->check()) {
         return response()->json(['status' => 'authenticated']);
     } else {
-        // Return 401 but with proper headers for debugging
-        return response()->json(['status' => 'unauthenticated'], 401)
-            ->header('X-Debug-Auth', 'false')
-            ->header('X-Session-ID', session()->getId());
+        // Return 401 without debug headers in production
+        $response = response()->json(['status' => 'unauthenticated'], 401);
+        
+        // Only add debug headers in local/development environment
+        if (app()->environment('local', 'testing')) {
+            $response->header('X-Debug-Auth', 'false')
+                     ->header('X-Session-ID', session()->getId());
+        }
+        
+        return $response;
     }
 })->middleware('web');
 
