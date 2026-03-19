@@ -18,8 +18,10 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+        
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail && !$user->hasVerifiedEmail(),
             'status' => session('status'),
         ]);
     }
@@ -29,31 +31,46 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        // Sanitize and validate input
+        $user = $request->user();
         $validated = $request->validated();
         
-        // Additional sanitization for security
-        $sanitizedData = [
-            'username' => isset($validated['username']) ? trim(strip_tags($validated['username'])) : null,
-            'email' => isset($validated['email']) ? strtolower(trim($validated['email'])) : null,
-            'profile_url' => isset($validated['profile_url']) ? trim(strip_tags($validated['profile_url'])) : null,
-        ];
-
-        $user = $request->user();
+        // Handle profile picture upload
+        if ($request->hasFile('profile_url')) {
+            $file = $request->file('profile_url');
+            
+            // Validate file
+            $request->validate([
+                'profile_url' => 'image|mimes:jpeg,png,jpg,gif|max:2048', // 2MB max
+            ]);
+            
+            // Create unique filename
+            $filename = 'profile_' . $user->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+            
+            // Store in public/profile directory
+            $path = $file->storeAs('profile', $filename, 'public');
+            
+            // Update profile_url with the stored file path
+            $user->profile_url = $path;
+        }
         
-        // Fill with sanitized data
-        $user->fill(array_filter($sanitizedData));
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // Update other fields
+        if (isset($validated['username'])) {
+            $user->username = trim(strip_tags($validated['username']));
+        }
+        
+        if (isset($validated['email'])) {
+            $user->email = strtolower(trim($validated['email']));
+            if ($user->isDirty('email')) {
+                $user->email_verified_at = null;
+            }
         }
 
-        $request->user()->save();
+        $user->save();
 
-        return Redirect::route('profile.edit');
+        return Redirect::route('user.profile')->with('status', 'profile-updated');
     }
 
-    /**
+        /**
      * Delete the user's account.
      */
     public function destroy(Request $request): RedirectResponse

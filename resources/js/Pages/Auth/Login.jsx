@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 
 // ─── Constellation Background ─────────────────────────────────────────────────
 function ConstellationBackground() {
@@ -100,6 +100,8 @@ function ConstellationBackground() {
 
 export default function Login({ status, canResetPassword }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const { props } = usePage();
+    const { message, type } = props;
     
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
@@ -184,6 +186,16 @@ export default function Login({ status, canResetPassword }) {
                                     {status && (
                                         <div className="mb-4 md:mb-6 p-3 md:p-4 bg-accent-emerald-green/20 border border-accent-emerald-green/50 rounded-lg text-sm text-accent-emerald-green">
                                             {status}
+                                        </div>
+                                    )}
+
+                                    {message && (
+                                        <div className={`mb-4 md:mb-6 p-3 md:p-4 rounded-lg text-sm ${
+                                            type === 'warning' 
+                                                ? 'bg-yellow-500/20 border border-yellow-500/50 text-yellow-400' 
+                                                : 'bg-accent-emerald-green/20 border border-accent-emerald-green/50 text-accent-emerald-green'
+                                        }`}>
+                                            {message}
                                         </div>
                                     )}
 

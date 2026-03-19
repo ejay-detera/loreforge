@@ -17,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        $middleware->alias(['mfa' => RequireMfa::class]);
+        $middleware->alias(['mfa' => RequireMfa::class, 'session.timeout' => \App\Http\Middleware\SessionTimeout::class]);
         $middleware->append(\App\Http\Middleware\PreventBackHistory::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -1,5 +1,5 @@
-import { Link, usePage } from '@inertiajs/react';
 import { useState, useRef, useEffect } from 'react';
+import { Link, usePage } from '@inertiajs/react';
 import PageTransition from '@/Components/PageTransition';
 
 // ─── Constellation Background (unchanged) ────────────────────────────────────
@@ -113,7 +113,7 @@ function NavLink({ href, icon, label, isActive }) {
 function ProfileDropdown({ user }) {
   const [open, setOpen] = useState(false);
   const dropRef = useRef(null);
-  const initials = (user?.name ?? 'A').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  const initials = (user?.username ?? 'A').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
 
   // Close on outside click
   useEffect(() => {
@@ -123,7 +123,7 @@ function ProfileDropdown({ user }) {
   }, []);
 
   const menuItems = [
-    { href: route('profile.edit'), icon: 'fas fa-user-edit', label: 'Profile', color: '#8899aa' },
+    { href: route('user.profile'), icon: 'fas fa-user-edit', label: 'Profile', color: '#8899aa' },
   ];
 
   return (
@@ -142,15 +142,34 @@ function ProfileDropdown({ user }) {
       >
         {/* Avatar */}
         <div
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 overflow-hidden"
           style={{
-            background: 'linear-gradient(135deg, #10b981, #059669)',
-            color: '#fff',
+            background: user?.profile_url ? 'transparent' : 'linear-gradient(135deg, #10b981, #059669)',
             boxShadow: open ? '0 0 12px rgba(16,185,129,0.4)' : 'none',
             transition: 'box-shadow 0.2s',
           }}
         >
-          {initials}
+          {user?.profile_url ? (
+            <img 
+              src={`/storage/${user.profile_url}`} 
+              alt="Profile" 
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          {/* Fallback icon */}
+          <div 
+            className="w-full h-full flex items-center justify-center" 
+            style={{ 
+              display: user?.profile_url ? 'none' : 'flex',
+              color: '#fff' 
+            }}
+          >
+            <i className="fas fa-user text-sm" />
+          </div>
         </div>
         <span className="hidden sm:block text-sm font-medium" style={{ color: '#e8e6f0', maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {user?.username ?? 'Adventurer'}
@@ -186,10 +205,30 @@ function ProfileDropdown({ user }) {
         <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex items-center gap-3">
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff' }}
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden"
+              style={{ background: user?.profile_url ? 'transparent' : 'linear-gradient(135deg,#10b981,#059669)' }}
             >
-              {initials}
+              {user?.profile_url ? (
+                <img 
+                  src={`/storage/${user.profile_url}`} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                    e.target.nextSibling.style.display = 'flex';
+                  }}
+                />
+              ) : null}
+              {/* Fallback icon */}
+              <div 
+                className="w-full h-full flex items-center justify-center" 
+                style={{ 
+                  display: user?.profile_url ? 'none' : 'flex',
+                  color: '#fff' 
+                }}
+              >
+                <i className="fas fa-user text-sm" />
+              </div>
             </div>
             <div>
               <div className="text-sm font-semibold" style={{ color: '#f0ead6', fontFamily: 'Poppins, sans-serif' }}>{user?.username}</div>
@@ -336,7 +375,16 @@ export default function AuthenticatedLayout({ header, children }) {
   const user = usePage().props.auth.user;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const currentPath = usePage().url;
+  const { url: currentPath } = usePage();
+
+  // Load SessionTracker only when user is authenticated
+  useEffect(() => {
+    if (user) {
+      import('../Utils/SessionTracker').then(() => {
+        // SessionTracker will auto-initialize
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -411,7 +459,13 @@ export default function AuthenticatedLayout({ header, children }) {
                     href={item.href}
                     icon={item.icon}
                     label={item.name}
-                    isActive={currentPath.startsWith(new URL(item.href, window.location.origin).pathname)}
+                    isActive={(() => {
+                      try {
+                        return currentPath.startsWith(new URL(item.href, window.location.origin).pathname);
+                      } catch {
+                        return false;
+                      }
+                    })()}
                   />
                 ))}
               </div>
@@ -453,12 +507,13 @@ export default function AuthenticatedLayout({ header, children }) {
           </header>
         )}
 
-        {/* Main content — push down by nav height */}
         <main className="relative pt-16">
-          <ConstellationBackground />
-          <PageTransition>
-            {children}
-          </PageTransition>
+            <div style={{ pointerEvents: 'none' }}>
+                <ConstellationBackground />
+            </div>
+            <PageTransition>
+                {children}
+            </PageTransition>
         </main>
       </div>
     </>
