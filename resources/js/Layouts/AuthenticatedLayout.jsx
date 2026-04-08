@@ -459,10 +459,15 @@ function MobileDrawer({ open, navigation, currentPath, onClose, user }) {
 
 // ─── Authenticated Layout ─────────────────────────────────────────────────────
 export default function AuthenticatedLayout({ header, children }) {
-  const user = usePage().props.auth.user;
+  const { props } = usePage();
+  const user = props.auth.user;
+  const activeSession = props.activeSession;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { url: currentPath } = usePage();
+  
+  // Check if we're on the game page
+  const isGamePage = currentPath?.includes('/game');
 
   // Load SessionTracker only when user is authenticated
   useEffect(() => {
@@ -481,7 +486,7 @@ export default function AuthenticatedLayout({ header, children }) {
 
   const navigation = [
     { name: 'Dashboard', href: route('dashboard'),  icon: 'fas fa-home'        },
-    { name: 'New Game',  href: route('new-game'),    icon: 'fas fa-plus-circle' },
+    { name: activeSession ? 'Game' : 'New Game',  href: activeSession ? route('game') : route('new-game'),    icon: activeSession ? 'fas fa-gamepad' : 'fas fa-plus-circle' },
     { name: 'History',   href: route('history'),     icon: 'fas fa-history'     },
     { name: 'Community', href: route('community'),   icon: 'fas fa-users'       },
   ];
@@ -492,24 +497,38 @@ export default function AuthenticatedLayout({ header, children }) {
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
       `}</style>
 
-      <div className="min-h-screen bg-bg-deep-navy text-text-primary-off-white" style={{ fontFamily: 'Poppins, sans-serif' }}>
+      <div className={`bg-bg-deep-navy text-text-primary-off-white ${isGamePage ? 'h-screen overflow-hidden' : 'min-h-screen'}`} style={{ fontFamily: 'Poppins, sans-serif' }}>
 
         {/* ── Top Nav ── */}
         <nav
           className="fixed top-0 left-0 right-0 z-50"
           style={{
-            background: scrolled ? 'rgba(10,14,26,0.95)' : 'rgba(10,14,26,0.75)',
-            borderBottom: `1px solid ${scrolled ? 'rgba(16,185,129,0.12)' : 'rgba(255,255,255,0.06)'}`,
-            backdropFilter: 'blur(20px)',
-            transition: 'background 0.3s, border-color 0.3s, box-shadow 0.3s',
-            boxShadow: scrolled ? '0 4px 32px rgba(0,0,0,0.4)' : 'none',
+            background: scrolled ? 'rgba(10,14,26,0.9)' : 'rgba(10,14,26,0.9)',
+            borderBottom: scrolled ? '1px solid rgba(16,185,129,0.12)' : '1px solid rgba(255,255,255,0.1)',
+            backdropFilter: scrolled ? 'blur(20px)' : 'blur(12px)',
+            WebkitBackdropFilter: scrolled ? 'blur(20px)' : 'blur(12px)',
+            transition: 'all 0.3s ease',
+            boxShadow: scrolled ? '0 4px 32px rgba(0,0,0,0.4)' : '0 2px 16px rgba(0,0,0,0.15)',
           }}
         >
-          {/* Subtle top accent line */}
-          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(16,185,129,0.4), transparent)' }} />
+          {/* Accent line (only when scrolled) */}
+          <div
+            className="absolute top-0 left-0 right-0 h-px"
+            style={{
+              background: scrolled
+                ? 'linear-gradient(90deg, transparent, rgba(16,185,129,0.4), transparent)'
+                : 'transparent'
+            }}
+          />
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
+            <div
+              className="flex items-center justify-between h-16"
+              style={{
+                textShadow: scrolled ? 'none' : '0 1px 3px rgba(0,0,0,0.8)',
+                color: scrolled ? '#f0ead6' : '#10b981'
+              }}
+            >
 
               {/* Logo */}
               <Link href="/" className="flex items-center gap-3 group flex-shrink-0">
@@ -518,16 +537,25 @@ export default function AuthenticatedLayout({ header, children }) {
                     src="/images/loreforge-logo.jpg"
                     alt="LoreForge"
                     className="h-9 w-9 rounded-lg object-cover"
-                    style={{ transition: 'transform 0.3s', boxShadow: '0 0 0 1px rgba(16,185,129,0.2)' }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 0 16px rgba(16,185,129,0.4)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 0 0 1px rgba(16,185,129,0.2)'; }}
+                    style={{
+                      transition: 'transform 0.3s',
+                      boxShadow: '0 0 0 1px rgba(16,185,129,0.2)'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'scale(1.08)';
+                      e.currentTarget.style.boxShadow = '0 0 16px rgba(16,185,129,0.4)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = '';
+                      e.currentTarget.style.boxShadow = '0 0 0 1px rgba(16,185,129,0.2)';
+                    }}
                   />
                 </div>
+
                 <span
                   className="hidden sm:block text-lg font-bold"
                   style={{
                     color: '#10b981',
-                    fontFamily: 'Poppins, sans-serif',
                     letterSpacing: '0.1em',
                     transition: 'color 0.2s',
                   }}
@@ -548,7 +576,9 @@ export default function AuthenticatedLayout({ header, children }) {
                     label={item.name}
                     isActive={(() => {
                       try {
-                        return currentPath.startsWith(new URL(item.href, window.location.origin).pathname);
+                        return currentPath.startsWith(
+                          new URL(item.href, window.location.origin).pathname
+                        );
                       } catch {
                         return false;
                       }
@@ -559,27 +589,40 @@ export default function AuthenticatedLayout({ header, children }) {
 
               {/* Right side */}
               <div className="flex items-center gap-3">
-                {/* Profile dropdown - desktop only */}
+                {/* Profile dropdown */}
                 <div className="hidden md:block">
                   <ProfileDropdown user={user} />
                 </div>
 
-                {/* Mobile profile picture */}
+                {/* Mobile profile */}
                 <div className="md:hidden">
                   <MobileProfileButton user={user} />
                 </div>
 
-                {/* Mobile hamburger */}
+                {/* Hamburger */}
                 <button
                   onClick={() => setMobileOpen(true)}
                   className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', color: '#8899aa', transition: 'background 0.2s, color 0.2s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.09)'; e.currentTarget.style.color = '#f0ead6'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = '#8899aa'; }}
+                  style={{
+                    background: scrolled ? 'rgba(255,255,255,0.05)' : 'transparent',
+                    border: scrolled ? '1px solid rgba(255,255,255,0.08)' : 'none',
+                    cursor: 'pointer',
+                    color: '#8899aa',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.09)';
+                    e.currentTarget.style.color = '#f0ead6';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = scrolled ? 'rgba(255,255,255,0.05)' : 'transparent';
+                    e.currentTarget.style.color = '#8899aa';
+                  }}
                 >
                   <i className="fas fa-bars text-sm" />
                 </button>
               </div>
+
             </div>
           </div>
         </nav>
@@ -602,14 +645,15 @@ export default function AuthenticatedLayout({ header, children }) {
           </header>
         )}
 
-        <main className="relative pt-16">
-            <div style={{ pointerEvents: 'none' }}>
-                <ConstellationBackground />
-            </div>
-            <PageTransition>
-                {children}
-            </PageTransition>
-        </main>
+          <main className={`relative flex flex-col ${isGamePage ? 'overflow-hidden' : ''}`} style={{ height: isGamePage ? 'calc(100vh - 64px)' : 'auto', marginTop: '64px' }}>
+              {/* constellation must be absolute so it doesn't affect flex layout */}
+              <div className="absolute inset-0" style={{ pointerEvents: 'none' }}>
+                  <ConstellationBackground />
+              </div>
+              <PageTransition>
+                  {children}
+              </PageTransition>
+          </main>
       </div>
     </>
   );

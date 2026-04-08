@@ -14,8 +14,6 @@ export default function MfaVerify() {
     };
 
     useEffect(() => {
-        console.log('MFA Verify component mounted - implementing comprehensive back prevention');
-        
         // Classic approach: immediately move forward
         window.history.forward();
         
@@ -26,7 +24,6 @@ export default function MfaVerify() {
         window.history.pushState(null, '', window.location.href);
         
         const preventBack = (e) => {
-            console.log('Back navigation attempt detected - blocking');
             e.preventDefault();
             e.stopImmediatePropagation();
             
@@ -62,7 +59,6 @@ export default function MfaVerify() {
                 (e.key === 'F5') ||
                 (e.ctrlKey && e.key === 'r')) {
                 e.preventDefault();
-                console.log('Keyboard navigation blocked:', e.key);
                 noBack(); // Use classic approach
                 return false;
             }
@@ -85,7 +81,6 @@ export default function MfaVerify() {
 
         // Cleanup
         return () => {
-            console.log('MFA Verify component unmounting - cleaning up event listeners');
             clearInterval(intervalId);
             window.removeEventListener('popstate', preventBack, true);
             window.removeEventListener('beforeunload', preventBack, true);
@@ -116,17 +111,6 @@ export default function MfaVerify() {
             <div 
                 className="min-h-screen flex items-center justify-center" 
                 style={{ background: '#080c18' }}
-                onLoad={() => {
-                    window.history.forward();
-                }}
-                onPageshow={(e) => {
-                    if (e.persisted) {
-                        window.history.forward();
-                    }
-                }}
-                onUnload={() => {
-                    // Prevent caching
-                }}
             >
                 <div className="max-w-md w-full mx-4">
                     <div className="rounded-2xl overflow-hidden" style={{ border: '1.5px solid rgba(255,255,255,0.07)', background: 'rgba(12,16,30,0.8)', backdropFilter: 'blur(8px)' }}>

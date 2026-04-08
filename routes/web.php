@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GameController;
 use App\Http\Controllers\MfaController;
 use App\Http\Middleware\SessionTimeout;
 use Illuminate\Foundation\Application;
@@ -41,6 +42,8 @@ Route::middleware(['auth', 'session.timeout', 'mfa'])->group(function () {
     Route::get('/new-game', function () {
         return Inertia::render('NewGame');
     })->name('new-game');
+    
+    Route::get('/game', [GameController::class, 'show'])->name('game');
     
     Route::get('/history', function () {
         return Inertia::render('History');

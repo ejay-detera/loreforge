@@ -150,9 +150,9 @@ function FeatureCard({ icon, title, description, badge, accent, accentGlow, acce
   ];
 
   return (
-    <div ref={ref} style={revealStyle(visible, revealDelay, 'up', 36)}>
+    <div ref={ref} style={revealStyle(visible, revealDelay, 'up', 36)} className="h-full">
       <div
-        className="relative rounded-2xl overflow-hidden cursor-default text-center"
+        className="relative rounded-2xl overflow-hidden cursor-default text-center h-full"
         style={{
           background: 'linear-gradient(150deg, rgba(18,20,30,0.88) 0%, rgba(22,26,40,0.92) 100%)',
           border: `1.5px solid ${hovered ? accent : accentDim}`,

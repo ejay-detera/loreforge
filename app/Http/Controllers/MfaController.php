@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\Rules\Password;
 use PragmaRX\Google2FA\Google2FA;
 use BaconQrCode\Writer;
-use BaconQrCode\Renderer\GDRenderer;
 use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -42,11 +43,11 @@ class MfaController extends Controller
         // Generate QR code locally using BaconQrCode
         $renderer = new ImageRenderer(
             new RendererStyle(200),
-            new GDRenderer()
+            new SvgImageBackEnd()
         );
         $writer = new Writer($renderer);
-        $qrCodeImage = base64_encode($writer->writeString($qrCodeData));
-        $qrCodeDataUrl = "data:image/png;base64,{$qrCodeImage}";
+        $qrCodeSvg = $writer->writeString($qrCodeData);
+        $qrCodeDataUrl = 'data:image/svg+xml;base64,' . base64_encode($qrCodeSvg);
 
         return Inertia::render('Mfa/Setup', [
             'qrCodeUrl' => $qrCodeDataUrl,

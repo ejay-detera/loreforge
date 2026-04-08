@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -51,5 +52,13 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         // Don't send the default Laravel verification email
         // OTP is handled by the EmailVerificationPromptController
+    }
+
+    /**
+     * Get the game sessions for the user.
+     */
+    public function gameSessions(): HasMany
+    {
+        return $this->hasMany(GameSession::class);
     }
 }

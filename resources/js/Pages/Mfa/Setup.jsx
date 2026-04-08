@@ -64,7 +64,7 @@ export default function MfaSetup({ qrCodeUrl, secret }) {
                                             e.target.style.display = 'none';
                                         }}
                                         onLoad={() => {
-                                            console.log('QR Code loaded successfully');
+                                            // QR Code loaded successfully
                                         }}
                                     />
                                 </div>

@@ -25,10 +25,14 @@ export default function MfaForm({ className = '' }) {
 
     const disableMfa = (e) => {
         e.preventDefault();
+        
         post(route('mfa.disable'), {
             onFinish: () => {
                 setShowDisableConfirm(false);
                 reset();
+            },
+            onError: (errors) => {
+                console.error('MFA disable errors');
             },
         });
     };

@@ -51,7 +51,7 @@ class GeminiService
      * Increment the daily request counter.
      * Automatically resets at midnight (stores until end of day).
      */
-    protected function incrementRequestCount(): void
+    public function incrementRequestCount(): void
     {
         $secondsUntilMidnight = now()->secondsUntilEndOfDay();
 
@@ -128,9 +128,6 @@ class GeminiService
                         'preview'         => substr($generatedText, 0, 200),
                     ]);
 
-                    // Increment counter ONLY on a successful response
-                    $this->incrementRequestCount();
-
                     return $this->parseGameBatch($generatedText);
                 }
 
@@ -142,6 +139,11 @@ class GeminiService
                 throw new \Exception('Gemini rate limit reached. Please wait a moment and try again.');
             }
 
+            // Service unavailable handling
+            if ($response->status() === 503) {
+                throw new \Exception('The story engine is currently experiencing high demand. Please wait a few moments and try again.');
+            }
+
             throw new \Exception('Gemini API error: ' . $response->body());
 
         } catch (\Exception $e) {
@@ -151,6 +153,37 @@ class GeminiService
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Get available enemy names based on sprites for each genre
+     */
+    protected function getAvailableEnemies(string $genre): array
+    {
+        $enemies = [
+            'fantasy' => [
+                'Goblin Fire Thrower',
+                'Goblin Demolitionist', 
+                'Skeleton Archer',
+                'Flaming Skull',
+                'Skeleton King',
+                'Armored Skeleton Spearman',
+                'Armored Skeleton Swordsman'
+            ],
+            'horror' => [
+                'Eldritch Boss',
+                'Eldritch Guardian',
+                'Eldritch Hunter',
+                'Eldritch Minion'
+            ],
+            'scifi' => [
+                'Robot Boss',
+                'Robot Guardian',
+                'Robot Pawn'
+            ]
+        ];
+
+        return $enemies[strtolower($genre)] ?? $enemies['fantasy'];
     }
 
     /**
@@ -168,12 +201,16 @@ class GeminiService
         $maxMP         = $session->max_mana;
         $turnsLeft     = $maxTurns - $currentTurn;
         $inventoryList = !empty($inventory) ? implode(', ', $inventory) : 'none';
+        
+        // Get available enemies for this genre
+        $availableEnemies = $this->getAvailableEnemies($session->genre);
+        $enemyList = implode(', ', $availableEnemies);
 
-        // Tone varies per genre
+        // Tone and player role varies per genre
         $toneLine = match(strtolower($session->genre)) {
-            'fantasy' => 'The tone is epic, magical, and heroic. Use medieval fantasy language and imagery.',
-            'horror'  => 'The tone is dark, tense, and terrifying. Build dread and suspense in every turn.',
-            'scifi'   => 'The tone is futuristic, mysterious, and technological. Use sci-fi terminology and world-building.',
+            'fantasy' => 'The tone is epic, magical, and heroic. The player is a brave Knight fighting against goblins and skeletons. Use medieval fantasy language and imagery.',
+            'horror'  => 'The tone is dark, tense, and terrifying. The player is a combat Mech fighting against eldritch horrors and cosmic monsters. Build dread and suspense in every turn.',
+            'scifi'   => 'The tone is futuristic, mysterious, and technological. The player is a humanoid Mech pilot fighting against giant enemy mechs and robots. Use sci-fi terminology and world-building.',
             default   => 'The tone is adventurous and immersive.',
         };
 
@@ -197,10 +234,28 @@ GAME STATE:
 TONE: {$toneLine}
 {$endingLine}
 
+ENEMY RULES:
+- ONLY use these exact enemy names for {$genre} genre: {$enemyList}
+- Each turn MUST feature one of these enemies as the antagonist
+- The enemy name chosen should match the story context and difficulty level
+- NEVER invent enemy names not on this list - this ensures proper sprite display
+- DYNAMIC ENEMY SELECTION: Change enemies between turns to create variety
+- If the player defeated an enemy in the previous turn, introduce a new enemy
+- Boss enemies (like Skeleton King, Eldritch Boss, Robot Boss) should appear as final encounters
+- Track which enemies have been defeated to avoid immediate repetition
+
+INVENTORY RULES:
+- The player currently has: {$inventoryList}
+- If the player has items, at least one choice per turn MUST actively use or reference a specific inventory item (e.g. "Use Health Potion", "Draw Iron Sword", "Raise Shield").
+- When an inventory item is used in a choice, set the appropriate items_removed in that outcome.
+- New items found must fit the {$genre} genre and the current story context.
+- Always reflect inventory realistically — a player with a sword fights differently than one without.
+
 YOUR TASK:
 Continue the story from the player's last choice and generate exactly {$batchSize} upcoming story turns as a JSON batch.
 For each turn, also generate ALL possible branching outcomes — one outcome object per choice.
 The player will pick one choice per turn and navigate client-side without needing another API call.
+IMPORTANT: This single API call generates {$batchSize} complete turns to minimize requests.
 
 STRICT RULES:
 1. Keep the story consistent with all previous choices and the current game state.
@@ -211,40 +266,42 @@ STRICT RULES:
 6. NEVER break character. NEVER mention JSON, APIs, or technical details in the story text.
 7. Each turn must have exactly 2 to 4 choices. No more, no less.
 8. Do NOT copy choices from previous turns.
+9. CRITICAL: Only use enemies from the approved list above. This ensures sprites exist.
 
-CRITICAL: Start your response immediately with {{ — no markdown, no code blocks, no explanations.
+CRITICAL: Start your response immediately with { — no markdown, no code blocks, no explanations.
 Return ONLY valid raw JSON. No trailing commas. Strict double quotes on all keys and string values.
 
 REQUIRED JSON FORMAT:
-{{
+{
   "batch": [
-    {{
+    {
       "turn_number": {$currentTurn},
+      "enemy_name": "Goblin Fire Thrower",
       "story_text": "Narrative text describing what happens after the player's last choice. 2-4 sentences.",
       "choices": ["Choice A", "Choice B", "Choice C"],
-      "outcomes": {{
-        "Choice A": {{
+      "outcomes": {
+        "Choice A": {
           "story": "Brief 1-2 sentence preview of what happens if the player picks Choice A.",
           "health_change": 0,
           "mana_change": -5,
           "enemy_hp_change": -20,
           "items_added": [],
           "items_removed": []
-        }},
-        "Choice B": {{
+        },
+        "Choice B": {
           "story": "Brief 1-2 sentence preview of what happens if the player picks Choice B.",
           "health_change": -15,
           "mana_change": 0,
           "enemy_hp_change": 0,
           "items_added": ["Health Potion"],
           "items_removed": []
-        }}
-      }}
-    }}
+        }
+      }
+    }
   ]
-}}
+}
 
-Generate the batch now. Remember: ONLY raw JSON, starting with {{
+Generate the batch now. Remember: ONLY raw JSON, starting with {
 PROMPT;
 
         return $prompt;
@@ -267,6 +324,11 @@ PROMPT;
 
         // Trim and extract JSON object
         $generatedText = trim($generatedText);
+
+        // Strip double-braces Gemini sometimes echoes back ({{ ... }})
+        $generatedText = preg_replace('/^\{\{/', '{',  $generatedText);
+        $generatedText = preg_replace('/\}\}$/', '}',  $generatedText);
+
         if (preg_match('/\{[\s\S]*\}/', $generatedText, $matches)) {
             $generatedText = $matches[0];
         }
@@ -295,7 +357,7 @@ PROMPT;
 
         // Validate each turn in the batch
         foreach ($data['batch'] as $index => $turn) {
-            $required = ['turn_number', 'story_text', 'choices', 'outcomes'];
+            $required = ['turn_number', 'enemy_name', 'story_text', 'choices', 'outcomes'];
             foreach ($required as $field) {
                 if (!isset($turn[$field])) {
                     throw new \Exception("Turn {$index} is missing field: {$field}. Please try again.");
