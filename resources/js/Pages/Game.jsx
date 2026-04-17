@@ -5,9 +5,12 @@ import GenreContainer, {
     GenreButton,
     GenreCard,
     GenreStatBar,
+    getGenreTheme,
 } from '@/Components/Game/GenreContainer';
 import ExitConfirmationModal from '@/Components/Game/ExitConfirmationModal';
 import TypewriterText from '@/Components/Game/TypewriterText';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowLeft, faExclamationTriangle, faTrophy, faSkull, faPlus, faBolt } from '@fortawesome/free-solid-svg-icons';
 
 /* ─── Main component ─────────────────────────────────────────────────── */
 const Game = () => {
@@ -20,80 +23,180 @@ const Game = () => {
         resolveChoice, resetGame, setError,
     } = useGame();
 
-    const [enemyHP, setEnemyHP]         = useState(120);
+    const [enemyHP, setEnemyHP] = useState(120);
     const [showExitModal, setShowExitModal] = useState(false);
-    const [textKey, setTextKey]         = useState(0);
+    const [textKey, setTextKey] = useState(0);
     const [dontShowExitModal, setDontShowExitModal] = useState(false);
+    const [hpDamage, setHpDamage] = useState(false);
+    const [mpDamage, setMpDamage] = useState(false);
+    const [prevHP, setPrevHP] = useState(100);
+    const [prevMP, setPrevMP] = useState(50);
+    const [spritesLoaded, setSpritesLoaded] = useState(false);
+    const [preservedGenre, setPreservedGenre] = useState(null);
+    const [enemySprite, setEnemySprite] = useState('');
+    const [prevEnemyName, setPrevEnemyName] = useState('');
+    const [battlePhase, setBattlePhase] = useState(null);  // null | 'player-attack' | 'enemy-attack' | 'done'
+    const [pendingOutcome, setPendingOutcome] = useState(null);
+    const [showEnemyDmg, setShowEnemyDmg] = useState(null);  // { value, color }
+    const [showPlayerDmg, setShowPlayerDmg] = useState(null);
 
     useEffect(() => {
         const saved = localStorage.getItem('dontShowExitModal');
-        if (saved === 'true') {
-            setDontShowExitModal(true);
-        }
+        if (saved === 'true') setDontShowExitModal(true);
+        setTimeout(() => setSpritesLoaded(true), 100);
     }, []);
+
     const ENEMY_MAX_HP = 120;
 
-    const genre    = (session?.genre ?? 'fantasy').toLowerCase();
-    const genreLabel = genre.charAt(0).toUpperCase() + genre.slice(1);
-    const charName = session?.character_name ?? 'Adventurer';
-    const currentEnemyName = { fantasy: 'Dark Wraith', horror: 'The Lurker', scifi: 'Rogue AI' }[genre] ?? 'Dark Wraith';
-    const charLevel = Math.max(1, Math.floor((currentTurn ?? 0) / 4) + 1);
+    // Preserve genre when backend doesn't return it
+    useEffect(() => {
+        if (session?.genre && !preservedGenre) {
+            setPreservedGenre(session.genre);
+        }
+    }, [session?.genre, preservedGenre]);
 
-    /* Enemy sprite selection based on genre */
+    const genre = (session?.genre ?? preservedGenre ?? 'fantasy').toLowerCase();
+    const genreLabel = genre.charAt(0).toUpperCase() + genre.slice(1);
+    const genreFolder = { fantasy: 'Fantasy', horror: 'Horror', scifi: 'Sci-fi' }[genre] ?? 'Fantasy';
+    const theme = getGenreTheme(genre);
+
+    useEffect(() => {
+        console.log('Genre Debug:', {
+            sessionGenre: session?.genre,
+            preservedGenre,
+            computedGenre: genre,
+            genreLabel,
+            turn: currentTurn,
+            sessionId: session?.id,
+        });
+
+        if (currentHP < prevHP) {
+            setHpDamage(true);
+            setTimeout(() => setHpDamage(false), 800);
+        }
+        if (currentMP < prevMP) {
+            setMpDamage(true);
+            setTimeout(() => setMpDamage(false), 800);
+        }
+
+        setPrevHP(currentHP);
+        setPrevMP(currentMP);
+    }, [session?.genre, preservedGenre, genre, currentTurn, session?.id, currentHP, currentMP, prevHP, prevMP]);
+
+    useEffect(() => {
+        if (enemyHP <= 0 && prevEnemyName) {
+            console.log('Enemy defeated! Current:', prevEnemyName, 'HP:', enemyHP);
+        }
+    }, [enemyHP, prevEnemyName]);
+
+    // Force TypewriterText to re-mount when turn changes
+    useEffect(() => {
+        if (currentTurnData) {
+            setTextKey(prev => prev + 1);
+        }
+    }, [currentTurnData?.turn_number, currentTurnData?.story_text]);
+
+    const charName = session?.character_name ?? 'Adventurer';
+    const fallbackEnemyName = { fantasy: 'Goblin Fire Thrower', horror: 'Eldritch Minion', scifi: 'Robot Pawn' }[genre] ?? 'Goblin Fire Thrower';
+    const charLevel = Math.max(1, Math.floor((currentTurn ?? 0) / 4) + 1);
+    const apiEnemyName = currentTurnData?.enemy_name;
+
     const enemySprites = {
         fantasy: [
             'Goblin_Fire.gif',
-            'Goblin_tnt.gif', 
+            'Goblin_tnt.gif',
             'Skeleton_Archer.png',
             'Skeleton_Flaming Skull.png',
             'Skeleton_King.png',
             'Skeleton_Spearman Armored.png',
-            'Skeleton_Swordman Armored.png'
+            'Skeleton_Swordman Armored.png',
         ],
         horror: [
             'Eldtrich_boss.png',
             'Eldtrich_guardian.png',
             'Eldtrich_hunter.png',
-            'Eldtrich_minion.png'
+            'Eldtrich_minion.png',
         ],
         scifi: [
             'Robot_Boss.gif',
             'Robot_Guardian.gif',
-            'Robot_Pawn.gif'
-        ]
+            'Robot_Pawn.gif',
+        ],
     };
-    
-    const enemySpriteList = enemySprites[genre] || enemySprites.fantasy;
-    // Use enemy_name from API response if available, otherwise fall back to turn-based rotation
-    const apiEnemyName = currentTurnData?.enemy_name;
-    const enemySprite = apiEnemyName 
-        ? enemySpriteList.find(sprite => sprite.toLowerCase().includes(apiEnemyName.toLowerCase().replace(/\s+/g, '_'))) || enemySpriteList[0]
-        : enemySpriteList[currentTurn % enemySpriteList.length];
-    const playerSprite = genre === 'scifi' ? 'Player.png' : 'Player.gif';
 
-    const handleGoToNewGame = () => router.visit('/new-game');
+    const enemySpriteList = enemySprites[genre] || enemySprites.fantasy;
+
+    useEffect(() => {
+        const currentEnemyName = currentTurnData?.enemy_name || fallbackEnemyName;
+        if (currentEnemyName !== prevEnemyName) {
+            const newSprite = currentEnemyName
+                ? enemySpriteList.find(s => s.toLowerCase().includes(currentEnemyName.toLowerCase().replace(/\s+/g, '_'))) || enemySpriteList[0]
+                : enemySpriteList[currentTurn % enemySpriteList.length];
+            setEnemySprite(newSprite);
+            setPrevEnemyName(currentEnemyName);
+        }
+    }, [currentTurnData?.enemy_name, fallbackEnemyName, currentTurn, enemySpriteList]);
+
+    const playerSprites = { fantasy: 'Player.gif', horror: 'Player.gif', scifi: 'Player.png' };
+    const playerSprite = playerSprites[genre];
+
+    const handleGoToNewGame = () => router.visit('/dashboard');
 
     const handleBackButton = () => {
-        if (dontShowExitModal) {
-            handleGoToNewGame();
-        } else {
-            setShowExitModal(true);
-        }
+        if (dontShowExitModal) handleGoToNewGame();
+        else setShowExitModal(true);
     };
 
     const handleChoice = async (choiceKey) => {
+        if (battlePhase) return; // already animating
+
         const outcome = currentTurnData?.outcomes?.[choiceKey];
-        if (outcome?.enemy_hp_change) {
-            setEnemyHP(prev => Math.max(0, prev + (outcome.enemy_hp_change ?? 0)));
-        }
-        await resolveChoice(choiceKey);
+        if (!outcome) return;
+
+        setPendingOutcome({ choiceKey, outcome });
+
+        // ── Phase 1: Player attacks enemy ──
+        setBattlePhase('player-attack');
+        setShowEnemyDmg(null);
+        setShowPlayerDmg(null);
+
+        // Show enemy damage number after impact delay
+        setTimeout(() => {
+            const enemyDmg = outcome.enemy_hp_change ?? 0;
+            if (enemyDmg !== 0) {
+                setShowEnemyDmg({ value: enemyDmg, color: '#ff4444' });
+                setEnemyHP(prev => Math.max(0, prev + enemyDmg));
+            }
+        }, 350);
+
+        // ── Phase 2: Enemy counter-attacks (if player takes damage) ──
+        const playerTakesDamage = (outcome.health_change ?? 0) < 0;
+        setTimeout(() => {
+            if (playerTakesDamage) {
+                setBattlePhase('enemy-attack');
+                setTimeout(() => {
+                    setShowPlayerDmg({
+                        value: outcome.health_change,
+                        color: '#ff6666',
+                    });
+                }, 350);
+            }
+        }, 900);
+
+        // ── Phase 3: Resolve turn after animations complete ──
+        const totalDuration = playerTakesDamage ? 1800 : 900;
+        setTimeout(async () => {
+            setBattlePhase(null);
+            setShowEnemyDmg(null);
+            setShowPlayerDmg(null);
+            setPendingOutcome(null);
+            await resolveChoice(choiceKey);
+        }, totalDuration);
     };
 
     const inventoryItems = Array.isArray(inventory)
         ? inventory.map(i => (typeof i === 'string' ? i : i?.item_name ?? ''))
         : [];
-
-    const choices = currentTurnData?.choices ?? [];
 
     /* ── Error ───────────────────────────────────────────────────────── */
     if (error) {
@@ -107,9 +210,11 @@ const Game = () => {
                 />
                 <div className="flex items-center justify-center min-h-screen p-6">
                     <GenreCard genre={genre} className="max-w-sm w-full p-8 text-center">
-                        <div className="text-5xl mb-4">⚠️</div>
-                        <h2 className="text-xl font-bold text-red-400 mb-2">Something went wrong</h2>
-                        <p className="text-red-300 text-sm mb-6">{error}</p>
+                        <div className="text-5xl mb-4">
+                            <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-400" />
+                        </div>
+                        <h2 className="text-xl font-bold text-red-400 mb-2 game-text">Something went wrong</h2>
+                        <p className="text-red-300 text-sm mb-6 game-text">{error}</p>
                         <div className="flex gap-3 justify-center">
                             <GenreButton genre={genre} variant="outline" onClick={() => setError(null)} size="small">
                                 Dismiss
@@ -124,8 +229,8 @@ const Game = () => {
         );
     }
 
-    /* ── Loading ─────────────────────────────────────────────────────── */
-    if (loading || (session && !currentTurnData && !isGameOver)) {
+    /* ── Loading — only during initial batch generation ──────────────── */
+    if ((loading && remainingTurns === 0) || (session && !currentTurnData && !isGameOver && remainingTurns === 0)) {
         return (
             <GenreContainer genre={genre}>
                 <ExitConfirmationModal
@@ -139,10 +244,12 @@ const Game = () => {
                         <div className="relative w-20 h-20 mx-auto mb-6">
                             <div className="absolute inset-0 rounded-full border-4 border-white/20 animate-ping" />
                             <div className="absolute inset-0 rounded-full border-4 border-t-white animate-spin" />
-                            <div className="flex items-center justify-center h-full text-2xl">⚔️</div>
+                            <div className="flex items-center justify-center h-full text-2xl">
+                                <FontAwesomeIcon icon={faBolt} className="text-white" />
+                            </div>
                         </div>
-                        <p className="text-white font-bold text-lg tracking-widest uppercase">Generating Story…</p>
-                        <p className="text-white/50 text-sm mt-1">The Dungeon Master is thinking</p>
+                        <p className="text-white font-bold text-lg tracking-widest uppercase game-text">Generating Story…</p>
+                        <p className="text-white/50 text-sm mt-1 game-text">The Dungeon Master is thinking</p>
                     </div>
                 </div>
             </GenreContainer>
@@ -174,28 +281,104 @@ const Game = () => {
 
     /* ── Game Over / Victory ─────────────────────────────────────────── */
     if (isGameOver) {
+        const accentColor = isVictory ? '#4ade80' : '#f87171';
+        const glowColor = isVictory ? 'rgba(74,222,128,0.4)' : 'rgba(248,113,113,0.4)';
+
         return (
             <GenreContainer genre={genre}>
-                <ExitConfirmationModal
-                    isOpen={showExitModal}
-                    onClose={() => setShowExitModal(false)}
-                    onConfirm={() => { setShowExitModal(false); handleGoToNewGame(); }}
-                    genre={genre}
-                />
                 <div className="flex items-center justify-center min-h-screen p-6">
-                    <GenreCard genre={genre} className="max-w-md w-full text-center p-10">
-                        <div className="text-6xl mb-4">{isVictory ? '🏆' : '💀'}</div>
-                        <h2 className={`text-3xl font-bold mb-3 ${isVictory ? 'text-green-400' : 'text-red-400'}`}>
-                            {isVictory ? 'Victory!' : 'Game Over'}
+                    <GenreCard genre={genre} className="max-w-lg w-full text-center p-10 relative overflow-hidden">
+
+                        {/* Background glow */}
+                        <div
+                            className="absolute inset-0 pointer-events-none"
+                            style={{
+                                background: `radial-gradient(circle at 50% 30%, ${glowColor} 0%, transparent 70%)`,
+                            }}
+                        />
+
+                        {/* Animated icon with pulse ring */}
+                        <div className="relative inline-block mb-6">
+                            <div
+                                className="absolute inset-0 rounded-full animate-ping"
+                                style={{
+                                    border: `3px solid ${accentColor}`,
+                                    opacity: 0.3,
+                                    animationDuration: '2s',
+                                }}
+                            />
+                            <div
+                                className="relative w-24 h-24 rounded-full flex items-center justify-center mx-auto"
+                                style={{
+                                    background: `linear-gradient(135deg, ${accentColor}22, ${accentColor}44)`,
+                                    border: `2px solid ${accentColor}`,
+                                    boxShadow: `0 0 30px ${glowColor}, inset 0 0 20px ${glowColor}`,
+                                }}
+                            >
+                                <FontAwesomeIcon
+                                    icon={isVictory ? faTrophy : faSkull}
+                                    className="text-4xl"
+                                    style={{ color: accentColor }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Title */}
+                        <h2
+                            className="text-3xl font-bold mb-2 game-text"
+                            style={{ color: accentColor }}
+                        >
+                            {isVictory ? 'Victory!' : 'Defeated'}
                         </h2>
-                        <p className="text-white/70 mb-8">
+                        <p className="text-white/60 text-sm mb-6 game-text">
                             {isVictory
-                                ? `${charName} has completed the adventure!`
-                                : `${charName}'s journey has ended in defeat.`}
+                                ? `${charName} has conquered the adventure!`
+                                : `${charName}'s journey has come to an end.`}
                         </p>
-                        <GenreButton genre={genre} onClick={handleGoToNewGame} size="large">
-                            Start New Adventure
-                        </GenreButton>
+
+                        {/* Divider */}
+                        <div
+                            className="mx-auto mb-6"
+                            style={{
+                                width: '60%',
+                                height: '1px',
+                                background: `linear-gradient(90deg, transparent, ${accentColor}66, transparent)`,
+                            }}
+                        />
+
+                        {/* Stats summary */}
+                        <div className="grid grid-cols-3 gap-3 mb-8">
+                            <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                <p className="text-white/40 text-[9px] uppercase tracking-widest game-text mb-1">Turns</p>
+                                <p className="text-white text-lg font-bold game-text">{currentTurn}/{maxTurns}</p>
+                            </div>
+                            <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                <p className="text-green-400/60 text-[9px] uppercase tracking-widest game-text mb-1">HP</p>
+                                <p className="text-green-400 text-lg font-bold game-text">{currentHP}/{maxHP}</p>
+                            </div>
+                            <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                                <p className="text-blue-400/60 text-[9px] uppercase tracking-widest game-text mb-1">MP</p>
+                                <p className="text-blue-400 text-lg font-bold game-text">{currentMP}/{maxMP}</p>
+                            </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex flex-col gap-3">
+                            <GenreButton genre={genre} onClick={() => router.visit('/dashboard')} size="large">
+                                Return to Dashboard
+                            </GenreButton>
+                            <button
+                                onClick={() => router.visit('/new-game')}
+                                className="px-6 py-3 rounded-lg text-sm font-bold uppercase tracking-wider game-text transition-all duration-200 hover:bg-white/10"
+                                style={{
+                                    color: 'rgba(255,255,255,0.5)',
+                                    border: '1px solid rgba(255,255,255,0.15)',
+                                    background: 'transparent',
+                                }}
+                            >
+                                Start New Adventure
+                            </button>
+                        </div>
                     </GenreCard>
                 </div>
             </GenreContainer>
@@ -214,7 +397,7 @@ const Game = () => {
             />
 
             {/* Back button */}
-            <div className="absolute top-4 left-4 z-30">
+            <div className="absolute top-4 right-4 z-30">
                 <GenreButton
                     genre={genre}
                     variant="outline"
@@ -222,211 +405,309 @@ const Game = () => {
                     size="small"
                     className="flex items-center gap-2"
                 >
-                    <i className="fas fa-arrow-left" />
+                    <FontAwesomeIcon icon={faArrowLeft} />
                     Back
                 </GenreButton>
             </div>
 
-                {/*
-                 * ── BATTLE ARENA ──────────────────────────────────────
-                 * Fixed height, relative container, everything inside is
-                 * absolutely positioned so nothing overflows.
-                */}
+            {/*
+             * ── BATTLE ARENA ──────────────────────────────────────────
+             * Pokémon-style: sprites close together, standing on a shared stage
+            */}
+            <div
+                className={`relative w-full shrink-0 overflow-hidden ${battlePhase ? 'battle-screen-shake' : ''}`}
+                style={{ height: '42vh', minHeight: '260px', maxHeight: '340px' }}
+            >
+                {/* ── GROUND STAGE LINE ── glowing platform both sprites stand on */}
                 <div
-                    className="relative w-full shrink-0 overflow-hidden"
-                    style={{ height: '42vh', minHeight: '260px', maxHeight: '340px' }}
-                >
-                    {/* ── ENEMY STAT BOX — top LEFT (like Pokémon) ── */}
-                    <div className="absolute top-3 left-4 z-20" style={{ maxWidth: '220px' }}>
-                        <GenreCard genre={genre} className="px-3 py-2">
-                            <div className="flex items-center justify-between gap-4 mb-1.5">
-                                <span className="font-bold text-white text-sm truncate">{apiEnemyName || currentEnemyName}</span>
-                                <span className="text-xs text-white/50 shrink-0">Lv.12</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-bold text-red-400 w-5 shrink-0">HP</span>
-                                <div className="flex-1">
-                                    <GenreStatBar genre={genre} value={enemyHP} max={ENEMY_MAX_HP} type="enemyHp" />
-                                </div>
-                            </div>
-                        </GenreCard>
-
-                        {/* Turn + Genre badges below enemy box */}
-                        <div className="flex gap-1.5 mt-1.5">
-                            <GenreCard genre={genre} className="px-2.5 py-1 text-[10px] font-mono">
-                                <span className="text-white/60">Turn</span> <span className="font-bold text-white">{currentTurn}</span><span className="text-white/60">/{maxTurns}</span>
-                            </GenreCard>
-                            <GenreCard genre={genre} className="px-2.5 py-1 text-[10px] font-bold">
-                                {genreLabel}
-                            </GenreCard>
-                        </div>
-                    </div>
-
-                    {/* ── ENEMY SPRITE — top RIGHT ──────────────────── */}
-                    <div className="absolute z-10" style={{ top: '8%', right: '18%' }}>
-                        <img
-                            src={`/Sprites/${genreLabel}/${enemySprite}`}
-                            alt={apiEnemyName || currentEnemyName}
-                            className="rounded-lg"
-                            style={{ 
-                                width: '130px', 
-                                height: '110px',
-                                objectFit: 'contain',
-                                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))'
-                            }}
-                        />
-                        {/* shadow platform */}
-                        <div className="mx-auto mt-1 rounded-full bg-black/30 blur-sm" style={{ width: '120px', height: '10px' }} />
-                    </div>
-
-                    {/* ── PLAYER SPRITE — bottom LEFT ───────────────── */}
-                    <div className="absolute z-10" style={{ bottom: '10%', left: '16%' }}>
-                        <img
-                            src={`/Sprites/${genreLabel}/${playerSprite}`}
-                            alt={charName}
-                            className="rounded-lg"
-                            style={{ 
-                                width: '150px', 
-                                height: '160px',
-                                objectFit: 'contain',
-                                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))'
-                            }}
-                        />
-                    </div>
-
-                    {/* ── PLAYER STAT BOX — bottom RIGHT (like Pokémon) ── */}
-                    <div className="absolute z-20" style={{ bottom: '6%', right: '4%', maxWidth: '230px' }}>
-                        <GenreCard genre={genre} className="px-4 py-2.5">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="font-bold text-white text-sm truncate max-w-[130px]">{charName}</span>
-                                <span className="text-xs text-white/50 shrink-0">Lv.{charLevel}</span>
-                            </div>
-                            <div className="flex items-center gap-2 mb-1.5">
-                                <span className="text-[10px] font-bold text-green-400 w-5 shrink-0">HP</span>
-                                <div className="flex-1">
-                                    <GenreStatBar genre={genre} value={currentHP} max={maxHP} type="hp" />
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] font-bold text-blue-400 w-5 shrink-0">MP</span>
-                                <div className="flex-1">
-                                    <GenreStatBar genre={genre} value={currentMP} max={maxMP} type="mp" />
-                                </div>
-                            </div>
-                            <div className="flex justify-between text-[10px] text-white/40 mt-0.5">
-                                <span>{currentHP}/{maxHP} HP</span>
-                                <span>{currentMP}/{maxMP} MP</span>
-                            </div>
-                        </GenreCard>
-                    </div>
-                </div>
-
-                {/*
-                 * ── BOTTOM PANEL ──────────────────────────────────────
-                 * Flex row: story text LEFT, choice buttons RIGHT
-                */}
-                <div
-                    className="flex border-t-2 flex-1 min-h-0"
-                    style={{ borderColor: 'rgba(255,255,255,0.1)' }}
-                >
-                    {/* LEFT — dialog / story text */}
-                    <div className="flex-1 p-4 flex flex-col min-w-0 min-h-0 bg-black/50 backdrop-blur">
-                        <p className="text-xs font-bold text-white/50 uppercase tracking-widest mb-2">
-                            What will <span style={{ color: 'var(--accent, #C9A84C)' }}>{charName}</span> do?
-                        </p>
-                        <div
-                            className="flex-1 overflow-y-auto pr-1"
-                            style={{
-                                border: '1px solid rgba(255,255,255,0.08)',
-                                borderRadius: '8px',
-                                padding: '10px 12px',
-                                background: 'rgba(0,0,0,0.3)',
-                            }}
-                        >
-                            {currentTurnData ? (
-                                <p className="text-white/85 text-sm leading-relaxed">
-                                    <TypewriterText 
-                                        key={textKey} 
-                                        text={currentTurnData.story_text} 
-                                        speed={25}
-                                    />
-                                </p>
-                            ) : (
-                                <p className="text-white/30 text-sm italic">[ Story text appears here... ]</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Divider */}
-                    <div style={{ width: '1px', background: 'rgba(255,255,255,0.08)' }} />
-
-                    {/* RIGHT — 2×2 choice buttons */}
-                    <div className="shrink-0 p-3 flex flex-col bg-black/60 backdrop-blur" style={{ width: '260px' }}>
-                        <p className="text-center text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2">
-                            Choose Action
-                        </p>
-                        <div className="grid grid-cols-2 gap-2 flex-1">
-                            {[0, 1, 2, 3].map((i) => {
-                                const choiceKeys = Object.keys(currentTurnData?.outcomes ?? {});
-                                const choiceKey = choiceKeys[i];
-                                // Display text comes from choices[] array, key comes from outcomes{}
-                                const displayText = currentTurnData?.choices?.[i] ?? choiceKey;
-
-                                return choiceKey ? (
-                                    <GenreButton
-                                        key={i}
-                                        genre={genre}
-                                        onClick={() => handleChoice(choiceKey)}
-                                        disabled={loading}
-                                        size="small"
-                                        className="text-[11px] leading-tight h-full w-full uppercase font-bold"
-                                    >
-                                        {displayText}
-                                    </GenreButton>
-                                ) : (
-                                    <div
-                                        key={i}
-                                        className="rounded-lg flex items-center justify-center text-white/15 text-[10px]"
-                                        style={{ border: '1px dashed rgba(255,255,255,0.12)' }}
-                                    >
-                                        —
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-
-                {/* ── INVENTORY BAR ─────────────────────────────────── */}
-                <div
-                    className="flex items-center gap-2 px-4 py-2 shrink-0 overflow-x-auto"
+                    className="absolute left-0 right-0 pointer-events-none z-10"
                     style={{
-                        background: 'rgba(0,0,0,0.7)',
-                        borderTop: '1px solid rgba(255,255,255,0.08)',
+                        bottom: '20%',
+                        height: '3px',
+                        background: `linear-gradient(90deg, transparent 2%, ${theme.accentColor}44 15%, ${theme.accentColor}cc 35%, ${theme.accentColor} 50%, ${theme.accentColor}cc 65%, ${theme.accentColor}44 85%, transparent 98%)`,
+                        boxShadow: `0 0 18px ${theme.accentGlow}, 0 0 6px ${theme.accentColor}`,
+                    }}
+                />
+
+                {/* ── GROUND FILL below stage line ── */}
+                <div
+                    className="absolute left-0 right-0 bottom-0 pointer-events-none z-10"
+                    style={{
+                        height: '20%',
+                        background: `linear-gradient(0deg, ${theme.groundColor} 0%, transparent 100%)`,
+                    }}
+                />
+
+                {/* ── ENEMY STAT BOX — top LEFT ── */}
+                <div
+                    className={`absolute top-3 left-4 z-20 ${spritesLoaded ? 'stat-fade-in' : ''}`}
+                    style={{ maxWidth: '220px' }}
+                >
+                    <GenreCard genre={genre} className="px-3 py-2">
+                        <div className="flex items-center justify-between gap-4 mb-1.5">
+                            <span className="font-bold text-white text-sm truncate game-text">
+                                {apiEnemyName || fallbackEnemyName}
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-red-400 w-5 shrink-0 game-text">HP</span>
+                            <div className={`flex-1 ${hpDamage ? 'hp-damage' : ''}`}>
+                                <GenreStatBar genre={genre} value={enemyHP} max={ENEMY_MAX_HP} type="enemyHp" />
+                            </div>
+                        </div>
+                    </GenreCard>
+
+                    {/* Turn + Genre badges */}
+                    <div className="flex gap-1.5 mt-1.5">
+                        <GenreCard genre={genre} className="px-2.5 py-1 text-[10px] font-mono">
+                            <span className="text-white/60 game-text">Turn</span>{' '}
+                            <span className="font-bold text-white game-text">{currentTurn}</span>
+                            <span className="text-white/60 game-text">/{maxTurns}</span>
+                        </GenreCard>
+                        <GenreCard genre={genre} className="px-2.5 py-1 text-[10px] font-bold">
+                            <span className="game-text">{genreLabel}</span>
+                        </GenreCard>
+                    </div>
+                </div>
+
+                {/* ── ENEMY SPRITE — upper right of center, standing on stage ── */}
+                <div
+                    className={`absolute z-10 ${spritesLoaded ? 'slide-in-right bounce-in' : ''} ${battlePhase === 'player-attack' ? 'battle-enemy-hit' : ''} ${battlePhase === 'enemy-attack' ? 'battle-enemy-attack' : ''}`}
+                    style={{
+                        bottom: 'calc(20% + 80px)',
+                        right: '28%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
                     }}
                 >
-                    <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest shrink-0 mr-1">
-                        Inventory:
-                    </span>
-                    {inventoryItems.length === 0 && (
-                        <span className="text-[11px] text-white/25">— empty —</span>
-                    )}
-                    {inventoryItems.map((item, idx) => (
-                        <GenreCard key={idx} genre={genre} className="px-3 py-1 shrink-0">
-                            <span className="text-[11px] text-white/80 font-medium whitespace-nowrap">{item}</span>
-                        </GenreCard>
-                    ))}
-                    {Array.from({ length: Math.max(0, 6 - inventoryItems.length) }).map((_, i) => (
+                    <img
+                        src={`/Sprites/${genreFolder}/${enemySprite}`}
+                        alt={apiEnemyName || fallbackEnemyName}
+                        className="rounded-lg"
+                        style={{
+                            width: '125px',
+                            height: '125px',
+                            objectFit: 'contain',
+                            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))',
+                        }}
+                    />
+                    <div
+                        className="rounded-full bg-black/40"
+                        style={{ width: '80px', height: '8px', filter: 'blur(3px)', marginTop: '-2px' }}
+                    />
+
+                    {/* Floating damage number on enemy */}
+                    {showEnemyDmg && (
                         <div
-                            key={`e-${i}`}
-                            className="px-3 py-1 rounded-lg shrink-0"
-                            style={{ border: '1px dashed rgba(255,255,255,0.12)' }}
+                            key={`edm-${currentTurn}-${Date.now()}`}
+                            className="battle-damage-number"
+                            style={{ top: '-10px', left: '50%', transform: 'translateX(-50%)', color: showEnemyDmg.color }}
                         >
-                            <span className="text-[11px] text-white/20 whitespace-nowrap">— empty —</span>
+                            {showEnemyDmg.value}
                         </div>
-                    ))}
+                    )}
                 </div>
-            </GenreContainer>
+
+                {/* ── IMPACT EFFECTS (on enemy position) ── */}
+                {battlePhase === 'player-attack' && (
+                    <>
+                        <div className="battle-screen-flash" />
+                        <div className="battle-impact-burst" style={{ top: 'calc(50% - 30px)', right: 'calc(28% + 40px)' }} />
+                        <div className="battle-slash-left" style={{ top: 'calc(50% - 30px)', right: 'calc(28% + 10px)' }} />
+                        <div className="battle-slash-right" style={{ top: 'calc(50% - 20px)', right: 'calc(28% + 20px)' }} />
+                    </>
+                )}
+
+                {/* ── IMPACT EFFECTS (on player position) ── */}
+                {battlePhase === 'enemy-attack' && (
+                    <>
+                        <div className="battle-screen-flash" />
+                        <div className="battle-impact-burst" style={{ top: 'calc(60%)', left: 'calc(24% + 50px)' }} />
+                        <div className="battle-slash-left" style={{ top: 'calc(60%)', left: 'calc(24% + 20px)' }} />
+                        <div className="battle-slash-right" style={{ top: 'calc(60% + 10px)', left: 'calc(24% + 30px)' }} />
+                    </>
+                )}
+
+                {/* ── PLAYER SPRITE — lower left of center, standing on stage ── */}
+                <div
+                    className={`absolute z-10 ${spritesLoaded ? 'slide-in-left bounce-in' : ''} ${battlePhase === 'player-attack' ? 'battle-player-attack' : ''} ${battlePhase === 'enemy-attack' ? 'battle-player-hit' : ''}`}
+                    style={{
+                        bottom: 'calc(5% + 3px)',
+                        left: '24%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                    }}
+                >
+                    <img
+                        src={`/Sprites/${genreFolder}/${playerSprite}`}
+                        alt={charName}
+                        className="rounded-lg"
+                        style={{
+                            width: '200px',
+                            height: '200px',
+                            objectFit: 'contain',
+                            filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.7))',
+                        }}
+                    />
+                    <div
+                        className="rounded-full bg-black/40"
+                        style={{ width: '100px', height: '10px', filter: 'blur(4px)', marginTop: '-2px' }}
+                    />
+
+                    {/* Floating damage number on player */}
+                    {showPlayerDmg && (
+                        <div
+                            key={`pdm-${currentTurn}-${Date.now()}`}
+                            className="battle-damage-number"
+                            style={{ top: '10px', left: '50%', transform: 'translateX(-50%)', color: showPlayerDmg.color }}
+                        >
+                            {showPlayerDmg.value}
+                        </div>
+                    )}
+                </div>
+
+                {/* ── PLAYER STAT BOX — bottom RIGHT ── */}
+                <div
+                    className={`absolute z-20 ${spritesLoaded ? 'stat-fade-in' : ''}`}
+                    style={{ bottom: '6%', right: '4%', maxWidth: '230px' }}
+                >
+                    <GenreCard genre={genre} className="px-4 py-2.5">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-white text-sm truncate max-w-[130px] game-text font-8bit">
+                                {charName}
+                            </span>
+                            <span className="text-xs text-white/50 shrink-0 game-text font-8bit">Lv.{charLevel}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-[10px] font-bold text-green-400 w-5 shrink-0 game-text font-8bit">HP</span>
+                            <div className={`flex-1 ${hpDamage ? 'hp-damage' : ''}`}>
+                                <GenreStatBar genre={genre} value={currentHP} max={maxHP} type="hp" />
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] font-bold text-blue-400 w-5 shrink-0 game-text font-8bit">MP</span>
+                            <div className={`flex-1 ${mpDamage ? 'mp-damage' : ''}`}>
+                                <GenreStatBar genre={genre} value={currentMP} max={maxMP} type="mp" />
+                            </div>
+                        </div>
+                        <div className="flex justify-between text-[10px] text-white/40 mt-0.5">
+                            <span className="game-text font-8bit">HP: {currentHP}/{maxHP}</span>
+                            <span className="game-text font-8bit">MP: {currentMP}/{maxMP}</span>
+                        </div>
+                    </GenreCard>
+                </div>
+            </div>
+
+            {/*
+             * ── BOTTOM PANEL ──────────────────────────────────────────
+             * Flex row: story text LEFT, choice buttons RIGHT
+            */}
+            <div
+                className="flex border-t-2 flex-1 min-h-0"
+                style={{ borderColor: 'rgba(255,255,255,0.1)' }}
+            >
+                {/* LEFT — dialog / story text */}
+                <div className="flex-1 p-4 flex flex-col min-w-0 min-h-0 bg-black/50 backdrop-blur">
+                    <p className="text-xs font-bold text-white/50 uppercase tracking-widest mb-2 game-text">
+                        What will <span style={{ color: 'var(--accent, #C9A84C)' }}>{charName}</span> do?
+                    </p>
+                    <div
+                        className="flex-1 overflow-y-auto pr-1"
+                        style={{
+                            border: '1px solid rgba(255,255,255,0.08)',
+                            borderRadius: '8px',
+                            padding: '10px 12px',
+                            background: 'rgba(0,0,0,0.3)',
+                        }}
+                    >
+                        {currentTurnData ? (
+                            <p className="text-white/85 text-sm leading-relaxed game-text">
+                                <TypewriterText
+                                    key={textKey}
+                                    text={currentTurnData.story_text}
+                                    speed={25}
+                                />
+                            </p>
+                        ) : (
+                            <p className="text-white/30 text-sm italic game-text">[ Story text appears here... ]</p>
+                        )}
+                    </div>
+                </div>
+
+                {/* Divider */}
+                <div style={{ width: '1px', background: 'rgba(255,255,255,0.08)' }} />
+
+                {/* RIGHT — 2×2 choice buttons */}
+                <div className="shrink-0 p-3 flex flex-col bg-black/60 backdrop-blur" style={{ width: '260px' }}>
+                    <p className="text-center text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2 game-text">
+                        Choose Action
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 flex-1">
+                        {[0, 1, 2, 3].map((i) => {
+                            const choiceKeys = Object.keys(currentTurnData?.outcomes ?? {});
+                            const choiceKey = choiceKeys[i];
+                            const displayText = currentTurnData?.choices?.[i] ?? choiceKey;
+
+                            return choiceKey ? (
+                                <GenreButton
+                                    key={i}
+                                    genre={genre}
+                                    onClick={() => handleChoice(choiceKey)}
+                                    disabled={loading || !!battlePhase}
+                                    size="small"
+                                    className="text-[11px] leading-tight h-full w-full uppercase font-bold game-text"
+                                >
+                                    {displayText}
+                                </GenreButton>
+                            ) : (
+                                <div
+                                    key={i}
+                                    className="rounded-lg flex items-center justify-center text-white/15 text-[10px]"
+                                    style={{ border: '1px dashed rgba(255,255,255,0.12)' }}
+                                >
+                                    —
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+
+            {/* ── INVENTORY BAR ─────────────────────────────────── */}
+            <div
+                className="flex items-center gap-2 px-4 py-2 shrink-0 overflow-x-auto"
+                style={{
+                    background: 'rgba(0,0,0,0.7)',
+                    borderTop: '1px solid rgba(255,255,255,0.08)',
+                }}
+            >
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest shrink-0 mr-1 game-text font-8bit">
+                    Inventory:
+                </span>
+                {inventoryItems.length === 0 && (
+                    <span className="text-[11px] text-white/25 game-text font-8bit">— empty —</span>
+                )}
+                {inventoryItems.map((item, idx) => (
+                    <GenreCard key={idx} genre={genre} className="px-3 py-1 shrink-0">
+                        <span className="text-[11px] text-white/80 font-medium whitespace-nowrap game-text font-8bit">
+                            {item}
+                        </span>
+                    </GenreCard>
+                ))}
+                {Array.from({ length: Math.max(0, 6 - inventoryItems.length) }).map((_, i) => (
+                    <div
+                        key={`e-${i}`}
+                        className="px-3 py-1 rounded-lg shrink-0"
+                        style={{ border: '1px dashed rgba(255,255,255,0.12)' }}
+                    >
+                        <span className="text-[11px] text-white/20 game-text whitespace-nowrap">— empty —</span>
+                    </div>
+                ))}
+            </div>
+
+        </GenreContainer>
     );
 };
 

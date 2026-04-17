@@ -1,4 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap');
 @import '@fortawesome/fontawesome-free/css/all.min.css';
 @tailwind base;
 @tailwind components;
@@ -28,4 +30,428 @@
 
 .animate-fade-in-up {
     animation: fade-in-up 1s ease-out;
+}
+
+/* 8-bit Font Styles */
+.game-font {
+    font-family: 'Press Start 2P', cursive !important;
+}
+
+.game-text {
+    font-family: 'Press Start 2P', cursive !important;
+}
+
+.game-ui {
+    font-family: 'Press Start 2P', cursive !important;
+}
+
+/* Game Animations */
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes hpDamage {
+    0% {
+        transform: scaleX(1);
+        background: linear-gradient(90deg, rgba(255,0,0,0.8), rgba(255,0,0,0.4));
+    }
+    20% {
+        transform: scaleX(0.95);
+        background: linear-gradient(90deg, rgba(255,100,100,0.8), rgba(255,100,100,0.4));
+    }
+    40% {
+        transform: scaleX(0.9);
+        background: linear-gradient(90deg, rgba(255,0,0,0.8), rgba(255,0,0,0.4));
+    }
+    60% {
+        transform: scaleX(0.95);
+        background: linear-gradient(90deg, rgba(255,100,100,0.8), rgba(255,100,100,0.4));
+    }
+    80% {
+        transform: scaleX(0.98);
+        background: linear-gradient(90deg, rgba(255,0,0,0.8), rgba(255,0,0,0.4));
+    }
+    100% {
+        transform: scaleX(1);
+        background: linear-gradient(90deg, rgba(34,197,94,0.8), rgba(34,197,94,0.4));
+    }
+}
+
+@keyframes mpDamage {
+    0% {
+        transform: scaleX(1);
+        background: linear-gradient(90deg, rgba(0,100,255,0.8), rgba(0,100,255,0.4));
+    }
+    20% {
+        transform: scaleX(0.95);
+        background: linear-gradient(90deg, rgba(100,100,255,0.8), rgba(100,100,255,0.4));
+    }
+    40% {
+        transform: scaleX(0.9);
+        background: linear-gradient(90deg, rgba(0,100,255,0.8), rgba(0,100,255,0.4));
+    }
+    60% {
+        transform: scaleX(0.95);
+        background: linear-gradient(90deg, rgba(100,100,255,0.8), rgba(100,100,255,0.4));
+    }
+    80% {
+        transform: scaleX(0.98);
+        background: linear-gradient(90deg, rgba(0,100,255,0.8), rgba(0,100,255,0.4));
+    }
+    100% {
+        transform: scaleX(1);
+        background: linear-gradient(90deg, rgba(59,130,246,0.8), rgba(59,130,246,0.4));
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-10px);
+    }
+    60% {
+        transform: translateY(-5px);
+    }
+}
+
+.stat-fade-in {
+    animation: fadeInScale 0.5s ease-out;
+}
+
+.hp-damage {
+    animation: hpDamage 0.8s ease-out;
+}
+
+.mp-damage {
+    animation: mpDamage 0.8s ease-out;
+}
+
+.slide-in-left {
+    animation: slideInLeft 0.6s ease-out;
+}
+
+.slide-in-right {
+    animation: slideInRight 0.6s ease-out;
+}
+
+.bounce-in {
+    animation: bounce 0.8s ease-out;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   POKÉMON-STYLE BATTLE ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Player lunges toward enemy ── */
+@keyframes playerAttackLunge {
+    0%   { transform: translate(0, 0) scale(1); }
+    15%  { transform: translate(-8px, 4px) scale(1.02); }   /* wind-up */
+    40%  { transform: translate(120px, -40px) scale(1.1); } /* lunge forward */
+    55%  { transform: translate(120px, -40px) scale(1.1); } /* hold at impact */
+    100% { transform: translate(0, 0) scale(1); }           /* return */
+}
+
+/* ── Enemy gets hit — recoil + flash ── */
+@keyframes enemyHitRecoil {
+    0%   { transform: translate(0, 0); filter: brightness(1) drop-shadow(0 4px 8px rgba(0,0,0,0.6)); }
+    20%  { transform: translate(15px, -5px); filter: brightness(3) drop-shadow(0 0 20px rgba(255,255,255,0.8)); }
+    35%  { transform: translate(-8px, 3px); filter: brightness(0.6) drop-shadow(0 0 15px rgba(255,0,0,0.6)); }
+    50%  { transform: translate(10px, 0); filter: brightness(2.5) drop-shadow(0 0 15px rgba(255,255,255,0.6)); }
+    65%  { transform: translate(-5px, 2px); filter: brightness(0.8) drop-shadow(0 4px 8px rgba(0,0,0,0.6)); }
+    80%  { transform: translate(3px, -1px); filter: brightness(1.5) drop-shadow(0 0 8px rgba(255,255,255,0.3)); }
+    100% { transform: translate(0, 0); filter: brightness(1) drop-shadow(0 4px 8px rgba(0,0,0,0.6)); }
+}
+
+/* ── Enemy attacks player (counter-attack) ── */
+@keyframes enemyAttackLunge {
+    0%   { transform: translate(0, 0) scale(1); }
+    15%  { transform: translate(8px, -4px) scale(1.02); }
+    40%  { transform: translate(-100px, 30px) scale(1.08); }
+    55%  { transform: translate(-100px, 30px) scale(1.08); }
+    100% { transform: translate(0, 0) scale(1); }
+}
+
+/* ── Player gets hit ── */
+@keyframes playerHitRecoil {
+    0%   { transform: translate(0, 0); filter: brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,0.7)); }
+    20%  { transform: translate(-15px, 5px); filter: brightness(3) drop-shadow(0 0 20px rgba(255,100,100,0.8)); }
+    35%  { transform: translate(8px, -3px); filter: brightness(0.6) drop-shadow(0 0 15px rgba(255,0,0,0.6)); }
+    50%  { transform: translate(-6px, 2px); filter: brightness(2); }
+    65%  { transform: translate(4px, -1px); filter: brightness(0.8); }
+    80%  { transform: translate(-2px, 1px); filter: brightness(1.3); }
+    100% { transform: translate(0, 0); filter: brightness(1) drop-shadow(0 4px 10px rgba(0,0,0,0.7)); }
+}
+
+/* ── Screen shake on the entire arena ── */
+@keyframes battleScreenShake {
+    0%   { transform: translate(0, 0); }
+    10%  { transform: translate(-4px, 2px); }
+    20%  { transform: translate(4px, -3px); }
+    30%  { transform: translate(-3px, 1px); }
+    40%  { transform: translate(3px, -2px); }
+    50%  { transform: translate(-2px, 3px); }
+    60%  { transform: translate(2px, -1px); }
+    70%  { transform: translate(-1px, 2px); }
+    80%  { transform: translate(1px, -1px); }
+    100% { transform: translate(0, 0); }
+}
+
+/* ── Impact burst — expanding ring at point of contact ── */
+@keyframes impactBurst {
+    0%   { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+    50%  { transform: translate(-50%, -50%) scale(1.5); opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(3); opacity: 0; }
+}
+
+/* ── Slash lines across the hit target ── */
+@keyframes slashLeft {
+    0%   { transform: translate(-50%, -50%) rotate(-30deg) scaleX(0); opacity: 1; }
+    40%  { transform: translate(-50%, -50%) rotate(-30deg) scaleX(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) rotate(-30deg) scaleX(1); opacity: 0; }
+}
+
+@keyframes slashRight {
+    0%   { transform: translate(-50%, -50%) rotate(30deg) scaleX(0); opacity: 1; }
+    40%  { transform: translate(-50%, -50%) rotate(30deg) scaleX(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) rotate(30deg) scaleX(1); opacity: 0; }
+}
+
+/* ── Floating damage number ── */
+@keyframes damageFloat {
+    0%   { transform: translateY(0) scale(0.5); opacity: 0; }
+    15%  { transform: translateY(-5px) scale(1.3); opacity: 1; }
+    30%  { transform: translateY(-15px) scale(1); opacity: 1; }
+    100% { transform: translateY(-50px) scale(0.8); opacity: 0; }
+}
+
+/* ── Screen white flash overlay ── */
+@keyframes screenFlash {
+    0%   { opacity: 0; }
+    15%  { opacity: 0.6; }
+    100% { opacity: 0; }
+}
+
+/* ─────── Animation classes ─────── */
+.battle-player-attack {
+    animation: playerAttackLunge 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.battle-enemy-hit {
+    animation: enemyHitRecoil 0.6s ease-out 0.25s forwards;
+}
+
+.battle-enemy-attack {
+    animation: enemyAttackLunge 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.battle-player-hit {
+    animation: playerHitRecoil 0.6s ease-out 0.25s forwards;
+}
+
+.battle-screen-shake {
+    animation: battleScreenShake 0.5s ease-out 0.3s;
+}
+
+.battle-impact-burst {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.5), inset 0 0 20px rgba(255, 255, 255, 0.3);
+    pointer-events: none;
+    animation: impactBurst 0.5s ease-out 0.3s forwards;
+    opacity: 0;
+    z-index: 25;
+}
+
+.battle-slash-left {
+    position: absolute;
+    width: 100px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+    pointer-events: none;
+    animation: slashLeft 0.4s ease-out 0.28s forwards;
+    opacity: 0;
+    z-index: 25;
+}
+
+.battle-slash-right {
+    position: absolute;
+    width: 100px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9), transparent);
+    pointer-events: none;
+    animation: slashRight 0.4s ease-out 0.32s forwards;
+    opacity: 0;
+    z-index: 25;
+}
+
+.battle-damage-number {
+    position: absolute;
+    font-family: 'Press Start 2P', cursive;
+    font-size: 18px;
+    font-weight: bold;
+    pointer-events: none;
+    z-index: 30;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.8), -1px -1px 0 rgba(0,0,0,0.5);
+    animation: damageFloat 1s ease-out 0.35s forwards;
+    opacity: 0;
+}
+
+.battle-screen-flash {
+    position: absolute;
+    inset: 0;
+    background: white;
+    pointer-events: none;
+    z-index: 20;
+    animation: screenFlash 0.4s ease-out 0.28s forwards;
+    opacity: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   NEW GAME (CHARACTER SELECT) STYLES
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@keyframes slideInLeftShort  { from { opacity:0; transform:translateX(-40px); } to { opacity:1; transform:translateX(0); } }
+@keyframes slideInRightShort { from { opacity:0; transform:translateX(40px);  } to { opacity:1; transform:translateX(0); } }
+@keyframes slideInUpShort    { from { opacity:0; transform:translateY(30px);  } to { opacity:1; transform:translateY(0); } }
+@keyframes scanLine          { 0%,100% { opacity:0.04; } 50% { opacity:0.10; } }
+@keyframes nameFlicker       { 0%,100% { opacity:1; } 94% { opacity:1; } 95% { opacity:0.7; } 97% { opacity:1; } 98% { opacity:0.8; } }
+@keyframes borderPulse       { 0%,100% { box-shadow: 0 0 0 rgba(255,255,255,0); } 50% { box-shadow: 0 0 12px rgba(255,255,255,0.1); } }
+
+.genre-name-display {
+    animation: nameFlicker 5s ease-in-out infinite;
+}
+.char-select-title {
+    font-family: 'Black Han Sans', 'Poppins', sans-serif;
+    font-size: clamp(13px, 2vw, 17px);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.85);
+    text-shadow: 0 0 20px rgba(255,255,255,0.2);
+}
+.slide-left  { animation: slideInLeftShort  0.4s cubic-bezier(.23,1,.32,1) both; }
+.slide-right { animation: slideInRightShort 0.4s cubic-bezier(.23,1,.32,1) both; }
+.slide-up    { animation: slideInUpShort    0.5s cubic-bezier(.23,1,.32,1) both; }
+
+.name-input {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-bottom: 2px solid rgba(255,255,255,0.35);
+    border-radius: 0;
+    color: #fff;
+    font-family: 'Poppins', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.3s;
+    text-align: center;
+}
+.name-input:focus {
+    border-bottom-color: var(--genre-accent, #fff);
+    background: rgba(0,0,0,0.7);
+}
+.name-input::placeholder { color: rgba(255,255,255,0.25); letter-spacing: 0.2em; font-weight: 400; }
+
+.nav-btn {
+    background: rgba(0,0,0,0.5);
+    border: 1.5px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.7);
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    transition: all 0.2s;
+    font-family: 'Poppins', sans-serif;
+    user-select: none;
+}
+.nav-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.5);
+    color: #fff;
+}
+
+.confirm-btn {
+    font-family: 'Black Han Sans', 'Poppins', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 12px 36px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.confirm-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.confirm-btn:not(:disabled):hover { filter: brightness(1.2) saturate(1.2); transform: scale(1.04); }
+
+.bottom-action-label {
+    font-family: 'Black Han Sans', 'Poppins', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: color 0.2s;
+    user-select: none;
+}
+.bottom-action-label:hover { color: rgba(255,255,255,0.85); }
+.action-icon {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+}
+
+.scan-overlay {
+    position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.04) 2px,
+        rgba(0,0,0,0.04) 4px
+    );
+    z-index: 50;
 }

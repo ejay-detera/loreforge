@@ -14,7 +14,8 @@ class GeminiService
     protected $baseUrl  = 'https://generativelanguage.googleapis.com/v1beta';
 
     // Daily request limit — matches Gemini free tier RPD
-    const DAILY_LIMIT     = 20;
+    // const DAILY_LIMIT     = 20; // DISABLED: Request limit removed
+    const DAILY_LIMIT     = 999999; // Set to very high number to effectively disable
     const CACHE_KEY       = 'gemini_daily_requests';
 
     public function __construct()
@@ -36,7 +37,9 @@ class GeminiService
      */
     public function getRemainingRequests(): int
     {
-        return max(0, self::DAILY_LIMIT - $this->getRequestsToday());
+        // DISABLED: Always return high number to indicate no limit
+        return 999999;
+        // return max(0, self::DAILY_LIMIT - $this->getRequestsToday());
     }
 
     /**
@@ -44,7 +47,9 @@ class GeminiService
      */
     public function isLimitReached(): bool
     {
-        return $this->getRequestsToday() >= self::DAILY_LIMIT;
+        // DISABLED: Never return true to remove limit
+        return false;
+        // return $this->getRequestsToday() >= self::DAILY_LIMIT;
     }
 
     /**
@@ -70,12 +75,15 @@ class GeminiService
     }
 
     /**
-     * Generate a batch of 3-5 story turns based on current game state.
-     * Called when the client-side turn buffer runs out.
+     * Generate ALL remaining story turns in a single API call.
+     * This is designed to be called ONCE per game session to minimize API usage.
+     * Each turn includes branching outcomes so the player navigates client-side.
      */
-    public function generateBatch(GameSession $session, string $playerChoice, array $inventory, int $batchSize = 4): array
+    public function generateBatch(GameSession $session, string $playerChoice, array $inventory, int $batchSize = 20): array
     {
         // ── Check daily limit BEFORE making the API call ──────────────────────
+        // DISABLED: Daily limit check removed
+        /*
         if ($this->isLimitReached()) {
             Log::warning('LoreForge: Gemini daily limit reached', [
                 'session_id'     => $session->id,
@@ -87,6 +95,7 @@ class GeminiService
                 'Please come back tomorrow to continue your adventure!'
             );
         }
+        */
 
         $prompt = $this->buildGamePrompt($session, $playerChoice, $inventory, $batchSize);
 
@@ -99,7 +108,7 @@ class GeminiService
         ]);
 
         try {
-            $response = Http::timeout(60)
+            $response = Http::timeout(120)
                 ->post("{$this->baseUrl}/models/{$this->model}:generateContent?key={$this->apiKey}", [
                     'contents' => [
                         [
@@ -109,10 +118,10 @@ class GeminiService
                         ]
                     ],
                     'generationConfig' => [
-                        'temperature'     => 0.9,   // Higher = more creative story
+                        'temperature'     => 0.9,
                         'topK'            => 40,
                         'topP'            => 0.95,
-                        'maxOutputTokens' => 4096,
+                        'maxOutputTokens' => 16384,
                     ]
                 ]);
 
@@ -234,39 +243,46 @@ GAME STATE:
 TONE: {$toneLine}
 {$endingLine}
 
-ENEMY RULES:
-- ONLY use these exact enemy names for {$genre} genre: {$enemyList}
-- Each turn MUST feature one of these enemies as the antagonist
-- The enemy name chosen should match the story context and difficulty level
-- NEVER invent enemy names not on this list - this ensures proper sprite display
-- DYNAMIC ENEMY SELECTION: Change enemies between turns to create variety
-- If the player defeated an enemy in the previous turn, introduce a new enemy
-- Boss enemies (like Skeleton King, Eldritch Boss, Robot Boss) should appear as final encounters
-- Track which enemies have been defeated to avoid immediate repetition
+ENEMY RULES (CAMPAIGN STRUCTURE):
+- ONLY use exact enemy names from this list: {$enemyList}
+- NEVER invent enemy names.
+- CYCLE ENEMIES: This is a full campaign. Start with weak enemies (e.g., Grunts/Minions), and progress to harder ones. 
+- When an enemy is narratively defeated, introduce a DIFFERENT enemy from the list in the next turn.
+- FINAL BOSS: The final turns MUST feature the Boss from the list (Skeleton King, Eldritch Boss, Robot Boss).
 
 INVENTORY RULES:
 - The player currently has: {$inventoryList}
-- If the player has items, at least one choice per turn MUST actively use or reference a specific inventory item (e.g. "Use Health Potion", "Draw Iron Sword", "Raise Shield").
-- When an inventory item is used in a choice, set the appropriate items_removed in that outcome.
-- New items found must fit the {$genre} genre and the current story context.
-- Always reflect inventory realistically — a player with a sword fights differently than one without.
+- You MUST sporadically give the player new items using `items_added` (e.g., ["Holy Sword", "Healing Potion"]). Always give them highly relevant items!
+- If the player has items, AT LEAST ONE choice per turn MUST utilize an item.
+- When an item is utilized, YOU MUST remove it in that choice's outcome by adding it to `items_removed` (e.g., ["Healing Potion"]).
+- Inventory matters: A player with a weapon should have better offensive choices!
+
+DIFFICULTY & STAT RULES:
+- Make the game HARD. The player SHOULD feel in danger of dying.
+- BAD choices MUST deal severe Health damage (-20 to -45).
+- GOOD/Neutral choices should deal minor damage (-5 to -15) or no damage.
+- Using a Healing item must heal Health (+20 to +40).
+- Enemy HP changes: -20 to -60 for good attacks.
+- Bosses must be hard to kill (require multiple turns of good choices).
+- ON THE FINAL TURN ({$maxTurns}), the successful choices MUST deal massive enemy damage (-120) to officially kill the final boss and achieve a true VICTORY.
 
 YOUR TASK:
-Continue the story from the player's last choice and generate exactly {$batchSize} upcoming story turns as a JSON batch.
-For each turn, also generate ALL possible branching outcomes — one outcome object per choice.
-The player will pick one choice per turn and navigate client-side without needing another API call.
-IMPORTANT: This single API call generates {$batchSize} complete turns to minimize requests.
+**THIS IS THE ONE AND ONLY API CALL FOR THE ENTIRE GAME.**
+Generate ALL {$batchSize} remaining story turns as a single JSON response.
+Each turn has branching outcomes (one per choice) so the player navigates entirely client-side with NO further API calls.
 
-STRICT RULES:
-1. Keep the story consistent with all previous choices and the current game state.
-2. Health changes must be between -30 and +20. Mana changes between -15 and +10.
-3. Enemy HP changes must be between -40 and 0 (enemy only loses HP, never gains).
-4. Items added or removed must make sense for the {$genre} genre.
-5. The final turn in the batch (turn {$maxTurns}) must be a story conclusion if this is the last batch.
-6. NEVER break character. NEVER mention JSON, APIs, or technical details in the story text.
-7. Each turn must have exactly 2 to 4 choices. No more, no less.
-8. Do NOT copy choices from previous turns.
-9. CRITICAL: Only use enemies from the approved list above. This ensures sprites exist.
+Because this is the ONLY call, you MUST generate the complete adventure arc:
+- Turn 1-5: Introduce setting, first weak enemy.
+- Turn 6-13: Escalate conflict, find powerful items, cycle to stronger enemies.
+- Turn 14-{$maxTurns}: The climax against the Final Boss. Turn {$maxTurns} must contain the definitive killing blow.
+
+STRICT FORMATTING RULES:
+1. Story must consistent and escalate.
+2. Each turn: exactly 2 to 4 choices.
+3. Keep story_text CONCISE: 2-3 sentences max.
+4. Keep outcome story text to 1 sentence.
+5. NEVER break character. NEVER mention JSON, APIs, or technical details.
+6. Each choice text should be SHORT (3-6 words max).
 
 CRITICAL: Start your response immediately with { — no markdown, no code blocks, no explanations.
 Return ONLY valid raw JSON. No trailing commas. Strict double quotes on all keys and string values.
@@ -277,11 +293,11 @@ REQUIRED JSON FORMAT:
     {
       "turn_number": {$currentTurn},
       "enemy_name": "Goblin Fire Thrower",
-      "story_text": "Narrative text describing what happens after the player's last choice. 2-4 sentences.",
+      "story_text": "Concise narrative, 2-3 sentences.",
       "choices": ["Choice A", "Choice B", "Choice C"],
       "outcomes": {
         "Choice A": {
-          "story": "Brief 1-2 sentence preview of what happens if the player picks Choice A.",
+          "story": "One sentence outcome.",
           "health_change": 0,
           "mana_change": -5,
           "enemy_hp_change": -20,
@@ -289,7 +305,7 @@ REQUIRED JSON FORMAT:
           "items_removed": []
         },
         "Choice B": {
-          "story": "Brief 1-2 sentence preview of what happens if the player picks Choice B.",
+          "story": "One sentence outcome.",
           "health_change": -15,
           "mana_change": 0,
           "enemy_hp_change": 0,
@@ -301,7 +317,7 @@ REQUIRED JSON FORMAT:
   ]
 }
 
-Generate the batch now. Remember: ONLY raw JSON, starting with {
+Generate ALL {$batchSize} turns now. Remember: ONLY raw JSON, starting with {
 PROMPT;
 
         return $prompt;

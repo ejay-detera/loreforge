@@ -1,59 +1,7 @@
 import { Head } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 
-export default function History() {
-    const gameHistory = [
-        {
-            id: 1,
-            name: "The Dragon's Lair",
-            genre: "Fantasy",
-            date: "2024-03-15",
-            duration: "2h 15m",
-            result: "Victory",
-            score: 2450,
-            achievements: ["Dragon Slayer", "Treasure Hunter"]
-        },
-        {
-            id: 2,
-            name: "Space Station Mystery",
-            genre: "Sci-Fi",
-            date: "2024-03-14",
-            duration: "1h 45m",
-            result: "Victory",
-            score: 1820,
-            achievements: ["Detective", "Tech Expert"]
-        },
-        {
-            id: 3,
-            name: "Haunted Mansion",
-            genre: "Horror",
-            date: "2024-03-13",
-            duration: "1h 30m",
-            result: "Defeat",
-            score: 980,
-            achievements: ["Survivor"]
-        },
-        {
-            id: 4,
-            name: "Elven Forest Quest",
-            genre: "Fantasy",
-            date: "2024-03-12",
-            duration: "3h 20m",
-            result: "Victory",
-            score: 3100,
-            achievements: ["Forest Guardian", "Master Strategist"]
-        },
-        {
-            id: 5,
-            name: "Mars Colony",
-            genre: "Sci-Fi",
-            date: "2024-03-11",
-            duration: "2h 45m",
-            result: "Victory",
-            score: 2750,
-            achievements: ["Colonist", "Engineer"]
-        }
-    ];
+export default function History({ games = [] }) {
 
     const getGenreColor = (genre) => {
         switch(genre) {
@@ -81,7 +29,7 @@ export default function History() {
                             <i className="fas fa-gamepad text-accent-emerald-green"></i>
                         </div>
                         <div className="text-2xl font-bold text-text-primary-off-white">
-                            {gameHistory.length}
+                            {games.length}
                         </div>
                     </div>
                     <div className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-6">
@@ -90,7 +38,7 @@ export default function History() {
                             <i className="fas fa-trophy text-highlight-warm-gold"></i>
                         </div>
                         <div className="text-2xl font-bold text-text-primary-off-white">
-                            {Math.round((gameHistory.filter(g => g.result === 'Victory').length / gameHistory.length) * 100)}%
+                            {games.length > 0 ? Math.round((games.filter(g => g.result === 'Victory').length / games.length) * 100) : 0}%
                         </div>
                     </div>
                     <div className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-6">
@@ -99,7 +47,7 @@ export default function History() {
                             <i className="fas fa-star text-blue-400"></i>
                         </div>
                         <div className="text-2xl font-bold text-text-primary-off-white">
-                            {gameHistory.reduce((sum, game) => sum + game.score, 0).toLocaleString()}
+                            {games.reduce((sum, game) => sum + game.score, 0).toLocaleString()}
                         </div>
                     </div>
                     <div className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-6">
@@ -108,14 +56,18 @@ export default function History() {
                             <i className="fas fa-medal text-purple-400"></i>
                         </div>
                         <div className="text-2xl font-bold text-text-primary-off-white">
-                            {gameHistory.reduce((sum, game) => sum + game.achievements.length, 0)}
+                            {games.reduce((sum, game) => sum + game.achievements.length, 0)}
                         </div>
                     </div>
                 </div>
 
                 {/* Game History List */}
                 <div className="space-y-4">
-                    {gameHistory.map((game) => (
+                    {games.length === 0 ? (
+                        <div className="text-center text-text-muted-cool-gray py-8">
+                            You haven't played any games yet. Start a new adventure!
+                        </div>
+                    ) : games.map((game) => (
                         <div key={game.id} className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-6 hover:border-accent-emerald-green/50 transition-all duration-300">
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">

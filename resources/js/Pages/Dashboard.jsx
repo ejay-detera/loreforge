@@ -294,6 +294,11 @@ export default function Dashboard({ auth, stats, recentSessions, spotlightCampai
 
   const firstName = auth?.user?.username?.split(' ')[0] || 'Adventurer';
 
+  // Debug: Log the actual status value
+  console.log('Dashboard Debug - lastSession:', lastSession);
+  console.log('Dashboard Debug - status:', lastSession?.status);
+  console.log('Dashboard Debug - status type:', typeof lastSession?.status);
+
   const statCards = [
     { icon: 'fas fa-scroll',     value: stats?.total ?? 12,     label: 'Total Games Played', accent: '#10b981', glow: 'rgba(16,185,129,.25)',  dim: 'rgba(16,185,129,.14)',  gradFrom: '#10b981', gradTo: '#059669', rune: 'ᚷ' },
     { icon: 'fas fa-trophy',     value: stats?.victories ?? 7, label: 'Victories',           accent: '#f5c842', glow: 'rgba(245,200,66,.25)',  dim: 'rgba(245,200,66,.14)',  gradFrom: '#f5c842', gradTo: '#d4920d', rune: 'ᛏ' },
@@ -362,25 +367,44 @@ export default function Dashboard({ auth, stats, recentSessions, spotlightCampai
                 </div>
 
                 <div className="flex items-center gap-3 flex-wrap">
-                  {(lastSession?.status !== 'Victory' && lastSession?.status !== 'Defeat') && (
+                  {((!lastSession || ['victory', 'defeat', 'defeated', 'abandoned'].includes(lastSession?.status?.toLowerCase())) ? (
                     <button
+                      disabled
                       className="inline-flex items-center gap-2 rounded-full font-semibold text-xs"
-                      style={{ padding: '10px 20px', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.8)', border: '1.5px solid rgba(255,255,255,.15)', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.06em', transition: 'all .25s' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(245,200,66,.5)'; e.currentTarget.style.background = 'rgba(245,200,66,.07)'; e.currentTarget.style.color = '#fff'; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.15)'; e.currentTarget.style.background = 'rgba(255,255,255,.06)'; e.currentTarget.style.color = 'rgba(255,255,255,.8)'; }}
+                      style={{ padding: '10px 20px', background: 'rgba(255,255,255,.02)', color: 'rgba(255,255,255,.25)', border: '1.5px solid rgba(255,255,255,.08)', cursor: 'not-allowed', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.06em', opacity: 0.5 }}
                     >
                       <i className="fas fa-redo text-xs" /> Continue
                     </button>
-                  )}
-                  <Link
-                    href={route('new-game')}
-                    className="inline-flex items-center gap-2 rounded-full font-semibold text-xs text-white"
-                    style={{ padding: '10px 22px', background: 'linear-gradient(135deg,#10b981,#059669)', boxShadow: '0 4px 18px rgba(16,185,129,.3)', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.06em', transition: 'transform .25s, box-shadow .25s' }}
-                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px) scale(1.04)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(16,185,129,.5)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 18px rgba(16,185,129,.3)'; }}
-                  >
-                    <i className="fas fa-plus text-xs" /> Start New Game
-                  </Link>
+                  ) : (
+                    <Link
+                      href={lastSession?.id ? route('game') : '#'}
+                      className="inline-flex items-center gap-2 rounded-full font-semibold text-xs"
+                      style={{ padding: '10px 20px', background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.8)', border: '1.5px solid rgba(255,255,255,.15)', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.06em', transition: 'all .25s' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(245,200,66,.5)'; e.currentTarget.style.background = 'rgba(245,200,66,.07)'; e.currentTarget.style.color = '#fff'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.15)'; e.currentTarget.style.background = 'rgba(245,200,66,.06)'; e.currentTarget.style.color = 'rgba(255,255,255,.8)'; }}
+                    >
+                      <i className="fas fa-redo text-xs" /> Continue
+                    </Link>
+                  ))}
+                  {((!lastSession || ['victory', 'defeat', 'defeated', 'abandoned'].includes(lastSession?.status?.toLowerCase())) ? (
+                    <Link
+                      href={route('new-game')}
+                      className="inline-flex items-center gap-2 rounded-full font-semibold text-xs text-white"
+                      style={{ padding: '10px 22px', background: 'linear-gradient(135deg,#10b981,#059669)', boxShadow: '0 4px 18px rgba(16,185,129,.3)', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.06em', transition: 'transform .25s, box-shadow .25s' }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px) scale(1.04)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(16,185,129,.5)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 18px rgba(16,185,129,.3)'; }}
+                    >
+                      <i className="fas fa-plus text-xs" /> Start New Game
+                    </Link>
+                  ) : (
+                    <button
+                      disabled
+                      className="inline-flex items-center gap-2 rounded-full font-semibold text-xs"
+                      style={{ padding: '10px 22px', background: 'rgba(255,255,255,.02)', color: 'rgba(255,255,255,.25)', border: '1.5px solid rgba(255,255,255,.08)', cursor: 'not-allowed', fontFamily: 'Poppins, sans-serif', letterSpacing: '0.06em', opacity: 0.5 }}
+                    >
+                      <i className="fas fa-plus text-xs" /> Start New Game
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>

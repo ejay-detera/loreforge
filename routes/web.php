@@ -46,7 +46,39 @@ Route::middleware(['auth', 'session.timeout', 'mfa'])->group(function () {
     Route::get('/game', [GameController::class, 'show'])->name('game');
     
     Route::get('/history', function () {
-        return Inertia::render('History');
+        $games = \App\Models\GameSession::where('user_id', auth()->id())
+            ->with('inventoryItems')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($game) {
+                $result = match ($game->outcome) {
+                    'victory' => 'Victory',
+                    'defeat'  => 'Defeat',
+                    default   => ucfirst($game->status), 
+                };
+
+                $score = ($game->turn_count * 100) + ($game->current_health * 10);
+                $durationInMinutes = $game->created_at->diffInMinutes($game->updated_at);
+                $hours = floor($durationInMinutes / 60);
+                $mins = $durationInMinutes % 60;
+                $durationStr = $hours > 0 ? "{$hours}h {$mins}m" : "{$mins}m";
+                $durationStr = $durationStr === '0m' ? '< 1m' : $durationStr;
+
+                $achievements = $game->inventoryItems->pluck('item_name')->toArray();
+
+                return [
+                    'id'           => $game->id,
+                    'name'         => $game->character_name . "'s Legend",
+                    'genre'        => ucfirst($game->genre),
+                    'date'         => $game->created_at->format('Y-m-d'),
+                    'duration'     => $durationStr,
+                    'result'       => $result,
+                    'score'        => $score,
+                    'achievements' => array_values(array_unique($achievements)),
+                ];
+            });
+
+        return Inertia::render('History', ['games' => $games]);
     })->name('history');
     
     Route::get('/community', function () {

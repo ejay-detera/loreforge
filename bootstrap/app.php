@@ -24,7 +24,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
-            \Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class,
         ]);
 
         $middleware->alias(['mfa' => RequireMfa::class, 'session.timeout' => \App\Http\Middleware\SessionTimeout::class, 'prevent.mfa.back' => PreventMfaBackNavigation::class]);

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { router, usePage } from '@inertiajs/react';
 
 const useGame = () => {
@@ -18,6 +18,7 @@ const useGame = () => {
     const [isVictory, setIsVictory] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const batchGenerated = useRef(false);
 
     const getCsrfToken = () => {
         const meta = document.querySelector('meta[name="csrf-token"]');
@@ -42,46 +43,51 @@ const useGame = () => {
 
     const checkAndGenerateBatch = useCallback(async (sessionParam = null) => {
         const activeSession = sessionParam || session;
-        const remainingTurns = currentBatch.length - currentTurnIndex;
 
-        if (remainingTurns <= 1 && !isGameOver && activeSession) {
-            try {
-                setLoading(true);
-                setError(null);
+        // Guard: only generate once per game session
+        if (batchGenerated.current || isGameOver || !activeSession) return;
+        batchGenerated.current = true;
 
-                const response = await fetch(`/api/game/${activeSession.id}/generate-batch`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                        'X-CSRF-TOKEN': getCsrfToken(),
-                    },
-                    credentials: 'same-origin',
-                });
+        try {
+            setLoading(true);
+            setError(null);
 
-                if (!response.ok) {
-                    if (response.status === 419) throw new Error('Session expired. Please refresh.');
-                    throw new Error(await response.text());
-                }
+            const response = await fetch(`/api/game/${activeSession.id}/generate-batch`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken(),
+                },
+                credentials: 'same-origin',
+            });
 
-                const data = await response.json();
-
-                if (data.success) {
-                    setCurrentBatch(prev => [...prev, ...data.batch.turns]);
-                } else {
-                    setError(data.message || 'Failed to generate turns');
-                }
-            } catch (err) {
-                console.error('generateBatch error:', err);
-                setError('Failed to generate turns');
-            } finally {
-                setLoading(false);
+            if (!response.ok) {
+                batchGenerated.current = false; // Allow retry on failure
+                if (response.status === 419) throw new Error('Session expired. Please refresh.');
+                throw new Error(await response.text());
             }
+
+            const data = await response.json();
+
+            if (data.success) {
+                setCurrentBatch(data.batch.turns);
+            } else {
+                batchGenerated.current = false; // Allow retry on failure
+                setError(data.message || 'Failed to generate turns');
+            }
+        } catch (err) {
+            batchGenerated.current = false; // Allow retry on failure
+            console.error('generateBatch error:', err);
+            setError('Failed to generate turns');
+        } finally {
+            setLoading(false);
         }
-    }, [currentBatch, currentTurnIndex, isGameOver, session]);
+    }, [isGameOver, session]);
 
     useEffect(() => {
         if (session && currentBatch.length === 0 && !isGameOver) {
+            console.log('Generating batch for session:', { sessionId: session.id, genre: session.genre });
             checkAndGenerateBatch(session);
         }
     }, [session]);
@@ -131,7 +137,12 @@ const useGame = () => {
 
             if (data.success) {
                 const s = data.session;
-                setSession(s);
+                console.log('Session updated after choice:', {
+                    oldGenre: session?.genre,
+                    newGenre: s.genre,
+                    sessionData: s
+                });
+                setSession(prev => ({ ...prev, ...s }));
                 setCurrentHP(s.current_health);
                 setCurrentMP(s.current_mana);
                 setCurrentTurn(s.turn_count);
@@ -139,7 +150,6 @@ const useGame = () => {
                 setIsVictory(s.is_victory);
                 setInventory(data.inventory);
                 setCurrentTurnIndex(prev => prev + 1);
-                await checkAndGenerateBatch();
             } else {
                 console.error('resolveTurn server error:', data);
                 setError(data.message || 'Resolve failed');
@@ -227,6 +237,7 @@ const useGame = () => {
         setIsGameOver(false);
         setIsVictory(false);
         setError(null);
+        batchGenerated.current = false;
     }, []);
 
     return {

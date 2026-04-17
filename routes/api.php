@@ -14,7 +14,10 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web'])->prefix('game')->group(function () {
+Route::middleware(['web'])
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+    ->prefix('game')
+    ->group(function () {
     
     // Start a new game session
     Route::post('/start', [GameSessionController::class, 'start']);

@@ -116,7 +116,8 @@ class GameSessionController extends Controller
                 ], 400);
             }
 
-            // Check daily limit
+            // Check daily limit - DISABLED
+            /*
             if ($this->geminiService->isLimitReached()) {
                 return response()->json([
                     'success' => false,
@@ -125,6 +126,7 @@ class GameSessionController extends Controller
                     'limit' => $this->geminiService::DAILY_LIMIT,
                 ], 429);
             }
+            */
 
             // Get current inventory
             $inventory = $session->inventoryItems()
@@ -140,9 +142,9 @@ class GameSessionController extends Controller
 
             $playerChoice = $lastTurn ? $lastTurn->player_choice : 'start';
 
-            // Generate batch using Gemini service within the transaction
+            // Generate ALL remaining turns in a single Gemini call
             return DB::transaction(function () use ($session, $playerChoice, $inventory) {
-                $batchSize = 4; // Generate 4 turns per batch
+                $batchSize = max(1, $session->max_turns - $session->turn_count);
                 $generatedTurns = $this->geminiService->generateBatch(
                     $session,
                     $playerChoice,
