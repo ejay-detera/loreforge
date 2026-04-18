@@ -86,11 +86,19 @@ const useGame = () => {
     }, [isGameOver, session]);
 
     useEffect(() => {
-        if (session && currentBatch.length === 0 && !isGameOver) {
-            console.log('Generating batch for session:', { sessionId: session.id, genre: session.genre });
-            checkAndGenerateBatch(session);
+        if (session && !isGameOver) {
+            if (currentBatch.length === 0) {
+                console.log('Generating batch for session:', { sessionId: session.id, genre: session.genre });
+                checkAndGenerateBatch(session);
+            } else if (currentTurnIndex >= currentBatch.length) {
+                // Reached the end of the current batch, fetch the next one
+                console.log('Batch exhausted. Fetching next batch...');
+                batchGenerated.current = false;
+                setCurrentBatch([]);
+                setCurrentTurnIndex(0);
+            }
         }
-    }, [session]);
+    }, [session, currentBatch.length, currentTurnIndex, isGameOver, checkAndGenerateBatch]);
 
     const resolveChoice = useCallback(async (choiceKey) => {
         if (!currentBatch[currentTurnIndex] || loading || isGameOver || !session) return;

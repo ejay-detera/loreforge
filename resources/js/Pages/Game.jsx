@@ -6,6 +6,7 @@ import GenreContainer, {
     GenreCard,
     GenreStatBar,
     getGenreTheme,
+    GenrePlatform,
 } from '@/Components/Game/GenreContainer';
 import ExitConfirmationModal from '@/Components/Game/ExitConfirmationModal';
 import TypewriterText from '@/Components/Game/TypewriterText';
@@ -35,9 +36,9 @@ const Game = () => {
     const [preservedGenre, setPreservedGenre] = useState(null);
     const [enemySprite, setEnemySprite] = useState('');
     const [prevEnemyName, setPrevEnemyName] = useState('');
-    const [battlePhase, setBattlePhase] = useState(null);  // null | 'player-attack' | 'enemy-attack' | 'done'
+    const [battlePhase, setBattlePhase] = useState(null);
     const [pendingOutcome, setPendingOutcome] = useState(null);
-    const [showEnemyDmg, setShowEnemyDmg] = useState(null);  // { value, color }
+    const [showEnemyDmg, setShowEnemyDmg] = useState(null);
     const [showPlayerDmg, setShowPlayerDmg] = useState(null);
 
     useEffect(() => {
@@ -48,7 +49,6 @@ const Game = () => {
 
     const ENEMY_MAX_HP = 120;
 
-    // Preserve genre when backend doesn't return it
     useEffect(() => {
         if (session?.genre && !preservedGenre) {
             setPreservedGenre(session.genre);
@@ -89,7 +89,8 @@ const Game = () => {
         }
     }, [enemyHP, prevEnemyName]);
 
-    // Force TypewriterText to re-mount when turn changes
+    const [lastProcessedTurn, setLastProcessedTurn] = useState(-1);
+
     useEffect(() => {
         if (currentTurnData) {
             setTextKey(prev => prev + 1);
@@ -126,16 +127,37 @@ const Game = () => {
 
     const enemySpriteList = enemySprites[genre] || enemySprites.fantasy;
 
+    const matchEnemySprite = (enemyName, list) => {
+        if (!enemyName) return null;
+        const searchWords = enemyName.toLowerCase().split(/[\s_]+/);
+        return list.find(s => {
+            const spriteName = s.toLowerCase();
+            return searchWords.every(word => spriteName.includes(word));
+        });
+    };
+
     useEffect(() => {
-        const currentEnemyName = currentTurnData?.enemy_name || fallbackEnemyName;
-        if (currentEnemyName !== prevEnemyName) {
-            const newSprite = currentEnemyName
-                ? enemySpriteList.find(s => s.toLowerCase().includes(currentEnemyName.toLowerCase().replace(/\s+/g, '_'))) || enemySpriteList[0]
-                : enemySpriteList[currentTurn % enemySpriteList.length];
-            setEnemySprite(newSprite);
-            setPrevEnemyName(currentEnemyName);
+        if (currentTurnData && currentTurnData.turn_number !== lastProcessedTurn) {
+            const currentEnemyName = currentTurnData.enemy_name || fallbackEnemyName;
+
+            let isNewEnemyInstance = false;
+
+            if (currentEnemyName !== prevEnemyName) {
+                isNewEnemyInstance = true;
+            } else if (enemyHP <= 0 && lastProcessedTurn !== -1) {
+                isNewEnemyInstance = true;
+            }
+
+            if (isNewEnemyInstance || lastProcessedTurn === -1) {
+                const newSprite = matchEnemySprite(currentEnemyName, enemySpriteList) || enemySpriteList[0];
+                setEnemySprite(newSprite);
+                setPrevEnemyName(currentEnemyName);
+                setEnemyHP(ENEMY_MAX_HP);
+            }
+
+            setLastProcessedTurn(currentTurnData.turn_number);
         }
-    }, [currentTurnData?.enemy_name, fallbackEnemyName, currentTurn, enemySpriteList]);
+    }, [currentTurnData, fallbackEnemyName, currentTurn, enemySpriteList, enemyHP, prevEnemyName, lastProcessedTurn]);
 
     const playerSprites = { fantasy: 'Player.gif', horror: 'Player.gif', scifi: 'Player.png' };
     const playerSprite = playerSprites[genre];
@@ -148,19 +170,17 @@ const Game = () => {
     };
 
     const handleChoice = async (choiceKey) => {
-        if (battlePhase) return; // already animating
+        if (battlePhase) return;
 
         const outcome = currentTurnData?.outcomes?.[choiceKey];
         if (!outcome) return;
 
         setPendingOutcome({ choiceKey, outcome });
 
-        // ── Phase 1: Player attacks enemy ──
         setBattlePhase('player-attack');
         setShowEnemyDmg(null);
         setShowPlayerDmg(null);
 
-        // Show enemy damage number after impact delay
         setTimeout(() => {
             const enemyDmg = outcome.enemy_hp_change ?? 0;
             if (enemyDmg !== 0) {
@@ -169,7 +189,6 @@ const Game = () => {
             }
         }, 350);
 
-        // ── Phase 2: Enemy counter-attacks (if player takes damage) ──
         const playerTakesDamage = (outcome.health_change ?? 0) < 0;
         setTimeout(() => {
             if (playerTakesDamage) {
@@ -183,7 +202,6 @@ const Game = () => {
             }
         }, 900);
 
-        // ── Phase 3: Resolve turn after animations complete ──
         const totalDuration = playerTakesDamage ? 1800 : 900;
         setTimeout(async () => {
             setBattlePhase(null);
@@ -229,7 +247,7 @@ const Game = () => {
         );
     }
 
-    /* ── Loading — only during initial batch generation ──────────────── */
+    /* ── Loading ─────────────────────────────────────────────────────── */
     if ((loading && remainingTurns === 0) || (session && !currentTurnData && !isGameOver && remainingTurns === 0)) {
         return (
             <GenreContainer genre={genre}>
@@ -288,24 +306,14 @@ const Game = () => {
             <GenreContainer genre={genre}>
                 <div className="flex items-center justify-center min-h-screen p-6">
                     <GenreCard genre={genre} className="max-w-lg w-full text-center p-10 relative overflow-hidden">
-
-                        {/* Background glow */}
                         <div
                             className="absolute inset-0 pointer-events-none"
-                            style={{
-                                background: `radial-gradient(circle at 50% 30%, ${glowColor} 0%, transparent 70%)`,
-                            }}
+                            style={{ background: `radial-gradient(circle at 50% 30%, ${glowColor} 0%, transparent 70%)` }}
                         />
-
-                        {/* Animated icon with pulse ring */}
                         <div className="relative inline-block mb-6">
                             <div
                                 className="absolute inset-0 rounded-full animate-ping"
-                                style={{
-                                    border: `3px solid ${accentColor}`,
-                                    opacity: 0.3,
-                                    animationDuration: '2s',
-                                }}
+                                style={{ border: `3px solid ${accentColor}`, opacity: 0.3, animationDuration: '2s' }}
                             />
                             <div
                                 className="relative w-24 h-24 rounded-full flex items-center justify-center mx-auto"
@@ -315,38 +323,19 @@ const Game = () => {
                                     boxShadow: `0 0 30px ${glowColor}, inset 0 0 20px ${glowColor}`,
                                 }}
                             >
-                                <FontAwesomeIcon
-                                    icon={isVictory ? faTrophy : faSkull}
-                                    className="text-4xl"
-                                    style={{ color: accentColor }}
-                                />
+                                <FontAwesomeIcon icon={isVictory ? faTrophy : faSkull} className="text-4xl" style={{ color: accentColor }} />
                             </div>
                         </div>
-
-                        {/* Title */}
-                        <h2
-                            className="text-3xl font-bold mb-2 game-text"
-                            style={{ color: accentColor }}
-                        >
+                        <h2 className="text-3xl font-bold mb-2 game-text" style={{ color: accentColor }}>
                             {isVictory ? 'Victory!' : 'Defeated'}
                         </h2>
                         <p className="text-white/60 text-sm mb-6 game-text">
-                            {isVictory
-                                ? `${charName} has conquered the adventure!`
-                                : `${charName}'s journey has come to an end.`}
+                            {isVictory ? `${charName} has conquered the adventure!` : `${charName}'s journey has come to an end.`}
                         </p>
-
-                        {/* Divider */}
                         <div
                             className="mx-auto mb-6"
-                            style={{
-                                width: '60%',
-                                height: '1px',
-                                background: `linear-gradient(90deg, transparent, ${accentColor}66, transparent)`,
-                            }}
+                            style={{ width: '60%', height: '1px', background: `linear-gradient(90deg, transparent, ${accentColor}66, transparent)` }}
                         />
-
-                        {/* Stats summary */}
                         <div className="grid grid-cols-3 gap-3 mb-8">
                             <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
                                 <p className="text-white/40 text-[9px] uppercase tracking-widest game-text mb-1">Turns</p>
@@ -361,8 +350,6 @@ const Game = () => {
                                 <p className="text-blue-400 text-lg font-bold game-text">{currentMP}/{maxMP}</p>
                             </div>
                         </div>
-
-                        {/* Action buttons */}
                         <div className="flex flex-col gap-3">
                             <GenreButton genre={genre} onClick={() => router.visit('/dashboard')} size="large">
                                 Return to Dashboard
@@ -370,11 +357,7 @@ const Game = () => {
                             <button
                                 onClick={() => router.visit('/new-game')}
                                 className="px-6 py-3 rounded-lg text-sm font-bold uppercase tracking-wider game-text transition-all duration-200 hover:bg-white/10"
-                                style={{
-                                    color: 'rgba(255,255,255,0.5)',
-                                    border: '1px solid rgba(255,255,255,0.15)',
-                                    background: 'transparent',
-                                }}
+                                style={{ color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.15)', background: 'transparent' }}
                             >
                                 Start New Adventure
                             </button>
@@ -410,15 +393,12 @@ const Game = () => {
                 </GenreButton>
             </div>
 
-            {/*
-             * ── BATTLE ARENA ──────────────────────────────────────────
-             * Pokémon-style: sprites close together, standing on a shared stage
-            */}
+            {/* ── BATTLE ARENA ── */}
             <div
                 className={`relative w-full shrink-0 overflow-hidden ${battlePhase ? 'battle-screen-shake' : ''}`}
                 style={{ height: '42vh', minHeight: '260px', maxHeight: '340px' }}
             >
-                {/* ── GROUND STAGE LINE ── glowing platform both sprites stand on */}
+                {/* ── GROUND STAGE LINE ── */}
                 <div
                     className="absolute left-0 right-0 pointer-events-none z-10"
                     style={{
@@ -456,8 +436,6 @@ const Game = () => {
                             </div>
                         </div>
                     </GenreCard>
-
-                    {/* Turn + Genre badges */}
                     <div className="flex gap-1.5 mt-1.5">
                         <GenreCard genre={genre} className="px-2.5 py-1 text-[10px] font-mono">
                             <span className="text-white/60 game-text">Turn</span>{' '}
@@ -470,15 +448,14 @@ const Game = () => {
                     </div>
                 </div>
 
-                {/* ── ENEMY SPRITE — upper right of center, standing on stage ── */}
+                {/* ── ENEMY SPRITE — upper right, standing on platform on the ground line ── */}
                 <div
                     className={`absolute z-10 ${spritesLoaded ? 'slide-in-right bounce-in' : ''} ${battlePhase === 'player-attack' ? 'battle-enemy-hit' : ''} ${battlePhase === 'enemy-attack' ? 'battle-enemy-attack' : ''}`}
                     style={{
-                        bottom: 'calc(20% + 80px)',
+                        // Moved way higher to match Pokemon-style perspective
+                        bottom: 'calc(45% - 18px)',
                         right: '28%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
+                        // Removed flex layout to allow manual overlapping
                     }}
                 >
                     <img
@@ -490,11 +467,24 @@ const Game = () => {
                             height: '125px',
                             objectFit: 'contain',
                             filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))',
+                            position: 'absolute',
+                            bottom: '5px', // Sit slightly above platform center
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 10,
                         }}
                     />
-                    <div
-                        className="rounded-full bg-black/40"
-                        style={{ width: '80px', height: '8px', filter: 'blur(3px)', marginTop: '-2px' }}
+
+                    {/* Platform ellipse anchored at the bottom of the wrapper */}
+                    <GenrePlatform
+                        genre={genre}
+                        className="absolute"
+                        style={{
+                            bottom: 0,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 0,
+                        }}
                     />
 
                     {/* Floating damage number on enemy */}
@@ -513,9 +503,9 @@ const Game = () => {
                 {battlePhase === 'player-attack' && (
                     <>
                         <div className="battle-screen-flash" />
-                        <div className="battle-impact-burst" style={{ top: 'calc(50% - 30px)', right: 'calc(28% + 40px)' }} />
-                        <div className="battle-slash-left" style={{ top: 'calc(50% - 30px)', right: 'calc(28% + 10px)' }} />
-                        <div className="battle-slash-right" style={{ top: 'calc(50% - 20px)', right: 'calc(28% + 20px)' }} />
+                        <div className="battle-impact-burst" style={{ top: 'calc(25% - 30px)', right: 'calc(28% + 40px)' }} />
+                        <div className="battle-slash-left" style={{ top: 'calc(25% - 30px)', right: 'calc(28% + 10px)' }} />
+                        <div className="battle-slash-right" style={{ top: 'calc(25% - 20px)', right: 'calc(28% + 20px)' }} />
                     </>
                 )}
 
@@ -529,15 +519,15 @@ const Game = () => {
                     </>
                 )}
 
-                {/* ── PLAYER SPRITE — lower left of center, standing on stage ── */}
+                {/* ── PLAYER SPRITE — lower left, standing on platform on the ground line ── */}
                 <div
                     className={`absolute z-10 ${spritesLoaded ? 'slide-in-left bounce-in' : ''} ${battlePhase === 'player-attack' ? 'battle-player-attack' : ''} ${battlePhase === 'enemy-attack' ? 'battle-player-hit' : ''}`}
                     style={{
-                        bottom: 'calc(5% + 3px)',
+                        // bottom of wrapper = ground line - half of player ellipse height (~30px)
+                        // so ellipse center sits exactly on the ground line
+                        bottom: 'calc(10% - 30px)',
                         left: '24%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
+                        // Removed flex layout to allow manual overlapping
                     }}
                 >
                     <img
@@ -549,11 +539,26 @@ const Game = () => {
                             height: '200px',
                             objectFit: 'contain',
                             filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.7))',
+                            position: 'absolute',
+                            bottom: '10px', // Sit slightly above platform center
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 10,
                         }}
                     />
-                    <div
-                        className="rounded-full bg-black/40"
-                        style={{ width: '100px', height: '10px', filter: 'blur(4px)', marginTop: '-2px' }}
+
+                    {/* Platform ellipse anchored at the bottom of the wrapper */}
+                    <GenrePlatform
+                        genre={genre}
+                        className="absolute"
+                        style={{
+                            bottom: 0,
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                            zIndex: 0,
+                            width: '280px',
+                            height: '110px',
+                        }}
                     />
 
                     {/* Floating damage number on player */}
@@ -600,10 +605,7 @@ const Game = () => {
                 </div>
             </div>
 
-            {/*
-             * ── BOTTOM PANEL ──────────────────────────────────────────
-             * Flex row: story text LEFT, choice buttons RIGHT
-            */}
+            {/* ── BOTTOM PANEL ── */}
             <div
                 className="flex border-t-2 flex-1 min-h-0"
                 style={{ borderColor: 'rgba(255,255,255,0.1)' }}
@@ -624,11 +626,7 @@ const Game = () => {
                     >
                         {currentTurnData ? (
                             <p className="text-white/85 text-sm leading-relaxed game-text">
-                                <TypewriterText
-                                    key={textKey}
-                                    text={currentTurnData.story_text}
-                                    speed={25}
-                                />
+                                <TypewriterText key={textKey} text={currentTurnData.story_text} speed={25} />
                             </p>
                         ) : (
                             <p className="text-white/30 text-sm italic game-text">[ Story text appears here... ]</p>
@@ -675,7 +673,7 @@ const Game = () => {
                 </div>
             </div>
 
-            {/* ── INVENTORY BAR ─────────────────────────────────── */}
+            {/* ── INVENTORY BAR ── */}
             <div
                 className="flex items-center gap-2 px-4 py-2 shrink-0 overflow-x-auto"
                 style={{

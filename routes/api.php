@@ -28,4 +28,7 @@ Route::middleware(['web'])
     // Resolve a player's choice for a specific turn
     Route::post('/{sessionId}/resolve/{turnId}', [GameSessionController::class, 'resolveTurn']);
     
+    // Get full session details for history timeline
+    Route::get('/history/{sessionId}/details', [GameSessionController::class, 'getSessionDetails']);
+    
 });

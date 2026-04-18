@@ -142,9 +142,33 @@ class GameSessionController extends Controller
 
             $playerChoice = $lastTurn ? $lastTurn->player_choice : 'start';
 
-            // Generate ALL remaining turns in a single Gemini call
+            // Check if there are already unresolved turns in a batch
+            $existingUnresolvedTurns = $session->turns()
+                ->where('is_resolved', false)
+                ->orderBy('turn_number', 'asc')
+                ->get();
+
+            if ($existingUnresolvedTurns->isNotEmpty()) {
+                Log::info('LoreForge: Returning existing generated batch', [
+                    'session_id' => $session->id,
+                    'turns_count' => count($existingUnresolvedTurns),
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'batch' => [
+                        'id' => $existingUnresolvedTurns->first()->batch_id,
+                        'batch_number' => $existingUnresolvedTurns->first()->batch_id,
+                        'turns' => $existingUnresolvedTurns,
+                    ],
+                    'message' => 'Restored existing generated turns.'
+                ]);
+            }
+
+            // Generate next 5 turns in a single Gemini call
             return DB::transaction(function () use ($session, $playerChoice, $inventory) {
-                $batchSize = max(1, $session->max_turns - $session->turn_count);
+                // Determine batch size (max 5 at a time to prevent Gemini context/timeout issues)
+                $batchSize = min(5, max(1, $session->max_turns - $session->turn_count));
                 $generatedTurns = $this->geminiService->generateBatch(
                     $session,
                     $playerChoice,
@@ -384,6 +408,37 @@ class GameSessionController extends Controller
                 'success' => false,
                 'message' => 'Failed to resolve turn. Please try again.'
             ], 500);
+        }
+    }
+
+    /**
+     * Get detailed history of a session
+     */
+    public function getSessionDetails($sessionId)
+    {
+        if (!Auth::check()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthenticated.'
+            ], 401);
+        }
+
+        try {
+            $session = GameSession::where('user_id', Auth::id())
+                ->with(['turns' => function($q) {
+                    $q->orderBy('turn_number', 'asc');
+                }])
+                ->findOrFail($sessionId);
+
+            return response()->json([
+                'success' => true,
+                'session' => $session
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Game session not found.'
+            ], 404);
         }
     }
 }

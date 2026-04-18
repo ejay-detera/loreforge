@@ -4,10 +4,12 @@ import React, { useEffect, useRef } from 'react';
 const GENRE_THEMES = {
     fantasy: {
         background: `
-            radial-gradient(ellipse 120% 80% at 50% 0%, #3B1F6E 0%, #1A0A3A 35%, #0D2010 65%, #0A1A0D 100%)
+            radial-gradient(circle at 15% 0%, #4A237A 0%, transparent 55%),
+            radial-gradient(circle at 85% 10%, #117A65 0%, transparent 50%),
+            linear-gradient(180deg, #120A20 0%, #0A1610 60%, #050A08 100%)
         `,
-        shimmer: `radial-gradient(ellipse 60% 40% at 30% 30%, rgba(201,168,76,0.18) 0%, transparent 60%),
-                  radial-gradient(ellipse 40% 60% at 70% 60%, rgba(45,122,79,0.15) 0%, transparent 60%)`,
+        shimmer: `radial-gradient(ellipse 70% 50% at 20% 20%, rgba(201,168,76,0.25) 0%, transparent 70%),
+                  radial-gradient(ellipse 50% 70% at 80% 65%, rgba(45,122,79,0.2) 0%, transparent 60%)`,
         groundGradient: 'linear-gradient(180deg, #0D2010 0%, #071009 100%)',
         skyGradient: 'linear-gradient(180deg, #1A0A3A 0%, #2D1B69 50%, #0D2010 100%)',
         fogColor: 'rgba(201,168,76,0.06)',
@@ -59,10 +61,12 @@ const GENRE_THEMES = {
     },
     scifi: {
         background: `
-            radial-gradient(ellipse 120% 80% at 50% 0%, #000820 0%, #000A1A 35%, #00101A 65%, #000508 100%)
+            radial-gradient(ellipse at 50% -20%, #004A80 0%, transparent 65%),
+            radial-gradient(ellipse at 85% 40%, #001A33 0%, transparent 55%),
+            linear-gradient(180deg, #01040A 0%, #010A16 45%, #00121A 100%)
         `,
-        shimmer: `radial-gradient(ellipse 60% 40% at 30% 30%, rgba(0,191,255,0.15) 0%, transparent 60%),
-                  radial-gradient(ellipse 40% 60% at 70% 60%, rgba(0,80,255,0.12) 0%, transparent 60%)`,
+        shimmer: `radial-gradient(ellipse 70% 50% at 30% 30%, rgba(0,229,255,0.18) 0%, transparent 65%),
+                  radial-gradient(ellipse 50% 70% at 70% 60%, rgba(0,102,255,0.15) 0%, transparent 60%)`,
         groundGradient: 'linear-gradient(180deg, #00101A 0%, #000508 100%)',
         skyGradient: 'linear-gradient(180deg, #000010 0%, #000A2A 50%, #001020 100%)',
         fogColor: 'rgba(0,191,255,0.06)',
@@ -117,9 +121,9 @@ const FantasyStars = () => (
 
         {/* Aurora bands */}
         {[
-            { top: '5%',  color: 'rgba(106,13,173,0.22)', delay: '0s',   dur: '7s',  width: '70%', left: '15%' },
-            { top: '12%', color: 'rgba(45,122,79,0.18)',  delay: '2s',   dur: '9s',  width: '55%', left: '25%' },
-            { top: '8%',  color: 'rgba(201,168,76,0.12)', delay: '4s',   dur: '11s', width: '40%', left: '30%' },
+            { top: '5%', color: 'rgba(106,13,173,0.22)', delay: '0s', dur: '7s', width: '70%', left: '15%' },
+            { top: '12%', color: 'rgba(45,122,79,0.18)', delay: '2s', dur: '9s', width: '55%', left: '25%' },
+            { top: '8%', color: 'rgba(201,168,76,0.12)', delay: '4s', dur: '11s', width: '40%', left: '30%' },
         ].map((a, i) => (
             <div key={i} className="absolute rounded-full" style={{
                 top: a.top, left: a.left, width: a.width, height: '60px',
@@ -133,10 +137,10 @@ const FantasyStars = () => (
         {/* Stars */}
         {[...Array(55)].map((_, i) => (
             <div key={i} className="absolute rounded-full" style={{
-                width:  i % 7 === 0 ? '3px' : i % 3 === 0 ? '2px' : '1.5px',
+                width: i % 7 === 0 ? '3px' : i % 3 === 0 ? '2px' : '1.5px',
                 height: i % 7 === 0 ? '3px' : i % 3 === 0 ? '2px' : '1.5px',
                 left: `${(i * 1.82 + (i % 11) * 2.7) % 100}%`,
-                top:  `${(i * 2.3  + (i % 7)  * 3.1) % 55}%`,
+                top: `${(i * 2.3 + (i % 7) * 3.1) % 55}%`,
                 backgroundColor: i % 5 === 0 ? 'rgba(255,220,120,0.9)' : 'rgba(220,210,255,0.8)',
                 animation: `twinkle ${2 + (i % 5)}s ease-in-out infinite`,
                 animationDelay: `${(i * 0.23) % 5}s`,
@@ -145,9 +149,9 @@ const FantasyStars = () => (
 
         {/* Shooting stars */}
         {[
-            { top: '8%',  left: '10%', delay: '3s',  dur: '1.2s', interval: '8s'  },
-            { top: '18%', left: '50%', delay: '9s',  dur: '0.9s', interval: '13s' },
-            { top: '5%',  left: '70%', delay: '15s', dur: '1s',   interval: '18s' },
+            { top: '8%', left: '10%', delay: '3s', dur: '1.2s', interval: '8s' },
+            { top: '18%', left: '50%', delay: '9s', dur: '0.9s', interval: '13s' },
+            { top: '5%', left: '70%', delay: '15s', dur: '1s', interval: '18s' },
         ].map((s, i) => (
             <div key={i} className="absolute rounded-full" style={{
                 top: s.top, left: s.left,
@@ -190,18 +194,18 @@ const FantasyFireflies = () => (
             }
         `}</style>
         {[
-            { bottom: '35%', left: '12%',  anim: 'firefly1', dur: '6s',  delay: '0s'   },
-            { bottom: '50%', left: '22%',  anim: 'firefly2', dur: '8s',  delay: '1.5s' },
-            { bottom: '42%', left: '35%',  anim: 'firefly3', dur: '7s',  delay: '0.8s' },
-            { bottom: '38%', left: '55%',  anim: 'firefly1', dur: '9s',  delay: '2.2s' },
-            { bottom: '55%', left: '65%',  anim: 'firefly2', dur: '5s',  delay: '3.5s' },
-            { bottom: '45%', left: '78%',  anim: 'firefly3', dur: '7.5s',delay: '1.2s' },
-            { bottom: '60%', left: '45%',  anim: 'firefly1', dur: '10s', delay: '4s'   },
-            { bottom: '32%', left: '88%',  anim: 'firefly2', dur: '6.5s',delay: '2.8s' },
-            { bottom: '48%', left: '5%',   anim: 'firefly3', dur: '8.5s',delay: '0.3s' },
-            { bottom: '65%', left: '30%',  anim: 'firefly1', dur: '7s',  delay: '5s'   },
-            { bottom: '40%', left: '92%',  anim: 'firefly2', dur: '9s',  delay: '1.8s' },
-            { bottom: '70%', left: '58%',  anim: 'firefly3', dur: '6s',  delay: '3.1s' },
+            { bottom: '35%', left: '12%', anim: 'firefly1', dur: '6s', delay: '0s' },
+            { bottom: '50%', left: '22%', anim: 'firefly2', dur: '8s', delay: '1.5s' },
+            { bottom: '42%', left: '35%', anim: 'firefly3', dur: '7s', delay: '0.8s' },
+            { bottom: '38%', left: '55%', anim: 'firefly1', dur: '9s', delay: '2.2s' },
+            { bottom: '55%', left: '65%', anim: 'firefly2', dur: '5s', delay: '3.5s' },
+            { bottom: '45%', left: '78%', anim: 'firefly3', dur: '7.5s', delay: '1.2s' },
+            { bottom: '60%', left: '45%', anim: 'firefly1', dur: '10s', delay: '4s' },
+            { bottom: '32%', left: '88%', anim: 'firefly2', dur: '6.5s', delay: '2.8s' },
+            { bottom: '48%', left: '5%', anim: 'firefly3', dur: '8.5s', delay: '0.3s' },
+            { bottom: '65%', left: '30%', anim: 'firefly1', dur: '7s', delay: '5s' },
+            { bottom: '40%', left: '92%', anim: 'firefly2', dur: '9s', delay: '1.8s' },
+            { bottom: '70%', left: '58%', anim: 'firefly3', dur: '6s', delay: '3.1s' },
         ].map((f, i) => (
             <div key={i} className="absolute rounded-full" style={{
                 bottom: f.bottom, left: f.left,
@@ -242,16 +246,16 @@ const FantasyLeaves = () => (
         `}</style>
         {[
             /* leaf shape as a tiny inline SVG via clip */
-            { left: '5%',  delay: '0s',   dur: '9s',  anim: 'leafFall1', color: '#2D7A4F', size: 10 },
-            { left: '15%', delay: '2s',   dur: '11s', anim: 'leafFall2', color: '#4A9A2F', size: 8  },
-            { left: '28%', delay: '4.5s', dur: '8s',  anim: 'leafFall3', color: '#C9A84C', size: 9  },
-            { left: '40%', delay: '1s',   dur: '13s', anim: 'leafFall1', color: '#2D7A4F', size: 7  },
-            { left: '55%', delay: '6s',   dur: '10s', anim: 'leafFall2', color: '#5AA830', size: 11 },
-            { left: '68%', delay: '3s',   dur: '9.5s',anim: 'leafFall3', color: '#C9A84C', size: 8  },
-            { left: '80%', delay: '7s',   dur: '12s', anim: 'leafFall1', color: '#3A9A4F', size: 9  },
-            { left: '92%', delay: '0.5s', dur: '8.5s',anim: 'leafFall2', color: '#C9A84C', size: 7  },
-            { left: '72%', delay: '5s',   dur: '10s', anim: 'leafFall3', color: '#2D7A4F', size: 10 },
-            { left: '8%',  delay: '8s',   dur: '11s', anim: 'leafFall1', color: '#4A9A2F', size: 8  },
+            { left: '5%', delay: '0s', dur: '9s', anim: 'leafFall1', color: '#2D7A4F', size: 10 },
+            { left: '15%', delay: '2s', dur: '11s', anim: 'leafFall2', color: '#4A9A2F', size: 8 },
+            { left: '28%', delay: '4.5s', dur: '8s', anim: 'leafFall3', color: '#C9A84C', size: 9 },
+            { left: '40%', delay: '1s', dur: '13s', anim: 'leafFall1', color: '#2D7A4F', size: 7 },
+            { left: '55%', delay: '6s', dur: '10s', anim: 'leafFall2', color: '#5AA830', size: 11 },
+            { left: '68%', delay: '3s', dur: '9.5s', anim: 'leafFall3', color: '#C9A84C', size: 8 },
+            { left: '80%', delay: '7s', dur: '12s', anim: 'leafFall1', color: '#3A9A4F', size: 9 },
+            { left: '92%', delay: '0.5s', dur: '8.5s', anim: 'leafFall2', color: '#C9A84C', size: 7 },
+            { left: '72%', delay: '5s', dur: '10s', anim: 'leafFall3', color: '#2D7A4F', size: 10 },
+            { left: '8%', delay: '8s', dur: '11s', anim: 'leafFall1', color: '#4A9A2F', size: 8 },
         ].map((l, i) => (
             <div key={i} style={{
                 position: 'absolute', top: '-20px', left: l.left,
@@ -292,19 +296,19 @@ const FantasyTrees = () => (
             <ellipse cx="400" cy="290" rx="500" ry="30" fill="rgba(201,168,76,0.05)" style={{ animation: 'mistDrift 11s ease-in-out infinite', animationDelay: '3s' }} />
 
             {/* Back row — shorter, more transparent */}
-            {[80, 200, 340, 500, 660, 820, 960, 1100].map((x, i) => (
+            {[60, 180, 320, 480, 640, 800, 940, 1080].map((x, i) => (
                 <g key={i} style={{ animation: `treeSway${(i % 2) + 1} ${6 + i * 0.5}s ease-in-out infinite`, animationDelay: `${i * 0.7}s` }}>
-                    <polygon points={`${x},300 ${x - 28},180 ${x + 28},180`} fill="rgba(10,26,13,0.7)" />
-                    <polygon points={`${x},220 ${x - 22},120 ${x + 22},120`} fill="rgba(13,32,16,0.65)" />
-                    <polygon points={`${x},160 ${x - 16},80  ${x + 16},80`}  fill="rgba(20,45,22,0.6)" />
+                    <polygon points={`${x},300 ${x - 30},170 ${x + 30},170`} fill="rgba(8,24,14,0.6)" />
+                    <polygon points={`${x},210 ${x - 24},100 ${x + 24},100`} fill="rgba(11,30,16,0.55)" />
+                    <polygon points={`${x},140 ${x - 18},60  ${x + 18},60`} fill="rgba(16,40,20,0.5)" />
                 </g>
             ))}
             {/* Front row — taller, more opaque */}
-            {[0, 130, 280, 430, 570, 720, 870, 1020, 1150, 1200].map((x, i) => (
+            {[-20, 110, 260, 410, 550, 700, 850, 1000, 1150, 1220].map((x, i) => (
                 <g key={i} style={{ animation: `treeSway${(i % 2) + 1} ${7 + i * 0.4}s ease-in-out infinite`, animationDelay: `${i * 0.5 + 1}s` }}>
-                    <polygon points={`${x},310 ${x - 35},160 ${x + 35},160`} fill="rgba(6,16,8,0.9)" />
-                    <polygon points={`${x},210 ${x - 28},90  ${x + 28},90`}  fill="rgba(8,22,10,0.85)" />
-                    <polygon points={`${x},140 ${x - 20},30  ${x + 20},30`}  fill="rgba(12,30,14,0.8)" />
+                    <polygon points={`${x},310 ${x - 40},140 ${x + 40},140`} fill="rgba(4,12,6,0.95)" />
+                    <polygon points={`${x},190 ${x - 32},70  ${x + 32},70`} fill="rgba(6,18,8,0.9)" />
+                    <polygon points={`${x},110 ${x - 24},20  ${x + 24},20`} fill="rgba(9,24,11,0.85)" />
                 </g>
             ))}
         </svg>
@@ -328,7 +332,7 @@ const HorrorLightning = () => {
         const ctx = canvas.getContext('2d');
 
         const resize = () => {
-            canvas.width  = canvas.offsetWidth;
+            canvas.width = canvas.offsetWidth;
             canvas.height = canvas.offsetHeight;
         };
         resize();
@@ -364,27 +368,27 @@ const HorrorLightning = () => {
 
         const strike = () => {
             const startX = Math.random() * canvas.width;
-            const endX   = startX + (Math.random() - 0.5) * 120;
-            const endY   = canvas.height * (0.3 + Math.random() * 0.4);
+            const endX = startX + (Math.random() - 0.5) * 120;
+            const endY = canvas.height * (0.3 + Math.random() * 0.4);
 
             // Main bright flash
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = 'rgba(255, 30, 30, 0.95)';
-            ctx.lineWidth   = 2.5;
+            ctx.lineWidth = 2.5;
             ctx.shadowColor = '#FF0000';
-            ctx.shadowBlur  = 18;
+            ctx.shadowBlur = 18;
             drawBolt(startX, 0, endX, endY, 60, 5);
 
             // Glow pass
             ctx.strokeStyle = 'rgba(255, 100, 100, 0.4)';
-            ctx.lineWidth   = 6;
-            ctx.shadowBlur  = 40;
+            ctx.lineWidth = 6;
+            ctx.shadowBlur = 40;
             drawBolt(startX, 0, endX, endY, 60, 3);
 
             // White core
             ctx.strokeStyle = 'rgba(255, 200, 200, 0.9)';
-            ctx.lineWidth   = 1;
-            ctx.shadowBlur  = 8;
+            ctx.lineWidth = 1;
+            ctx.shadowBlur = 8;
             drawBolt(startX, 0, endX, endY, 60, 4);
 
             // Fade out
@@ -394,8 +398,8 @@ const HorrorLightning = () => {
                 if (Math.random() > 0.5) {
                     setTimeout(() => {
                         ctx.strokeStyle = 'rgba(200,20,20,0.5)';
-                        ctx.lineWidth   = 1.5;
-                        ctx.shadowBlur  = 12;
+                        ctx.lineWidth = 1.5;
+                        ctx.shadowBlur = 12;
                         drawBolt(startX, 0, endX, endY, 50, 4);
                         setTimeout(() => ctx.clearRect(0, 0, canvas.width, canvas.height), 80);
                     }, 100);
@@ -494,8 +498,8 @@ const HorrorEyes = () => (
             }
         `}</style>
         {[
-            { left: '8%',  top: '55%', delay: '2s',  dur: '12s' },
-            { left: '88%', top: '48%', delay: '6s',  dur: '15s' },
+            { left: '8%', top: '55%', delay: '2s', dur: '12s' },
+            { left: '88%', top: '48%', delay: '6s', dur: '15s' },
             { left: '45%', top: '60%', delay: '10s', dur: '18s' },
         ].map((e, i) => (
             <div key={i} style={{
@@ -540,22 +544,22 @@ const ScifiGrid = () => (
     <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
         <style>{`
             @keyframes gridScroll {
-                0%   { transform: perspective(400px) rotateX(55deg) translateY(0px); }
-                100% { transform: perspective(400px) rotateX(55deg) translateY(60px); }
+                0%   { transform: perspective(500px) rotateX(60deg) translateY(0px); }
+                100% { transform: perspective(500px) rotateX(60deg) translateY(50px); }
             }
             @keyframes gridFade {
-                0%, 100% { opacity: 0.07; }
-                50%       { opacity: 0.13; }
+                0%, 100% { opacity: 0.15; }
+                50%       { opacity: 0.35; filter: drop-shadow(0 0 4px rgba(0,191,255,0.6)); }
             }
         `}</style>
         <div style={{
-            position: 'absolute', bottom: '-20%', left: '-20%', right: '-20%', height: '70%',
+            position: 'absolute', bottom: '-20%', left: '-30%', right: '-30%', height: '80%',
             backgroundImage: `
-                linear-gradient(rgba(0,191,255,0.25) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,191,255,0.25) 1px, transparent 1px)
+                linear-gradient(rgba(0,191,255,0.4) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,191,255,0.4) 1px, transparent 1px)
             `,
-            backgroundSize: '40px 40px',
-            animation: 'gridScroll 3s linear infinite, gridFade 4s ease-in-out infinite',
+            backgroundSize: '50px 50px',
+            animation: 'gridScroll 4s linear infinite, gridFade 3s ease-in-out infinite',
             transformOrigin: 'bottom center',
         }} />
     </div>
@@ -579,16 +583,16 @@ const ScifiLasers = () => {
         class Laser {
             constructor() { this.reset(); }
             reset() {
-                this.fromLeft  = Math.random() > 0.5;
-                this.y         = Math.random() * canvas.height * 0.7;
-                this.x         = this.fromLeft ? -20 : canvas.width + 20;
-                this.targetX   = this.fromLeft ? canvas.width + 20 : -20;
-                this.speed     = 4 + Math.random() * 6;
-                this.color     = colors[Math.floor(Math.random() * colors.length)];
-                this.width     = 1 + Math.random() * 1.5;
-                this.length    = 60 + Math.random() * 120;
-                this.opacity   = 0.6 + Math.random() * 0.4;
-                this.alive     = true;
+                this.fromLeft = Math.random() > 0.5;
+                this.y = Math.random() * canvas.height * 0.7;
+                this.x = this.fromLeft ? -20 : canvas.width + 20;
+                this.targetX = this.fromLeft ? canvas.width + 20 : -20;
+                this.speed = 4 + Math.random() * 6;
+                this.color = colors[Math.floor(Math.random() * colors.length)];
+                this.width = 1 + Math.random() * 1.5;
+                this.length = 60 + Math.random() * 120;
+                this.opacity = 0.6 + Math.random() * 0.4;
+                this.alive = true;
             }
             update() {
                 this.x += this.fromLeft ? this.speed : -this.speed;
@@ -597,16 +601,16 @@ const ScifiLasers = () => {
             draw() {
                 const tail = this.fromLeft ? this.x - this.length : this.x + this.length;
                 const grad = ctx.createLinearGradient(tail, this.y, this.x, this.y);
-                grad.addColorStop(0,   `${this.color}0)`);
+                grad.addColorStop(0, `${this.color}0)`);
                 grad.addColorStop(0.4, `${this.color}${this.opacity})`);
-                grad.addColorStop(1,   `${this.color}${this.opacity})`);
+                grad.addColorStop(1, `${this.color}${this.opacity})`);
                 ctx.beginPath();
                 ctx.moveTo(tail, this.y);
                 ctx.lineTo(this.x, this.y);
                 ctx.strokeStyle = grad;
-                ctx.lineWidth   = this.width;
+                ctx.lineWidth = this.width;
                 ctx.shadowColor = this.color + '0.8)';
-                ctx.shadowBlur  = 8;
+                ctx.shadowBlur = 8;
                 ctx.stroke();
                 // bright core
                 const grad2 = ctx.createLinearGradient(tail, this.y, this.x, this.y);
@@ -616,8 +620,8 @@ const ScifiLasers = () => {
                 ctx.moveTo(tail, this.y);
                 ctx.lineTo(this.x, this.y);
                 ctx.strokeStyle = grad2;
-                ctx.lineWidth   = this.width * 0.4;
-                ctx.shadowBlur  = 4;
+                ctx.lineWidth = this.width * 0.4;
+                ctx.shadowBlur = 4;
                 ctx.stroke();
             }
         }
@@ -726,10 +730,10 @@ const ScifiStars = () => (
         `}</style>
         {[...Array(60)].map((_, i) => (
             <div key={i} className="absolute rounded-full" style={{
-                width:  i % 9 === 0 ? '3px' : '1.5px',
+                width: i % 9 === 0 ? '3px' : '1.5px',
                 height: i % 9 === 0 ? '3px' : '1.5px',
                 left: `${(i * 1.65 + (i % 13) * 2.4) % 100}%`,
-                top:  `${(i * 2.1  + (i % 9)  * 3.3) % 55}%`,
+                top: `${(i * 2.1 + (i % 9) * 3.3) % 55}%`,
                 backgroundColor: i % 6 === 0 ? 'rgba(0,230,255,0.9)' : 'rgba(180,220,255,0.7)',
                 animation: `starPulse ${2 + (i % 6)}s ease-in-out infinite`,
                 animationDelay: `${(i * 0.18) % 5}s`,
@@ -737,9 +741,9 @@ const ScifiStars = () => (
         ))}
         {/* Meteors */}
         {[
-            { top: '10%', left: '5%',  delay: '2s',  dur: '1s'   },
-            { top: '25%', left: '40%', delay: '7s',  dur: '0.8s' },
-            { top: '5%',  left: '65%', delay: '14s', dur: '1.1s' },
+            { top: '10%', left: '5%', delay: '2s', dur: '1s' },
+            { top: '25%', left: '40%', delay: '7s', dur: '0.8s' },
+            { top: '5%', left: '65%', delay: '14s', dur: '1.1s' },
         ].map((m, i) => (
             <div key={i} className="absolute" style={{
                 top: m.top, left: m.left,
@@ -843,30 +847,30 @@ export const GenreButton = ({
     const theme = GENRE_THEMES[key] || GENRE_THEMES.fantasy;
 
     const sizes = {
-        small:  'px-3 py-1.5 text-xs',
+        small: 'px-3 py-1.5 text-xs',
         medium: 'px-5 py-2.5 text-sm',
-        large:  'px-8 py-4 text-base',
+        large: 'px-8 py-4 text-base',
     };
 
     const variants = {
         primary: {
-            bg:     theme.buttonPrimary,
-            hover:  theme.buttonHover,
-            color:  '#ffffff',
+            bg: theme.buttonPrimary,
+            hover: theme.buttonHover,
+            color: '#ffffff',
             shadow: `0 4px 18px ${theme.accentGlow}`,
             border: `1px solid ${theme.accentColor}55`,
         },
         secondary: {
-            bg:     theme.buttonSecondary,
-            hover:  theme.buttonPrimary,
-            color:  '#ffffff',
+            bg: theme.buttonSecondary,
+            hover: theme.buttonPrimary,
+            color: '#ffffff',
             shadow: `0 4px 14px ${theme.accentGlow}`,
             border: 'none',
         },
         outline: {
-            bg:     'transparent',
-            hover:  theme.buttonPrimary,
-            color:  theme.accentColor,
+            bg: 'transparent',
+            hover: theme.buttonPrimary,
+            color: theme.accentColor,
             shadow: 'none',
             border: `1.5px solid ${theme.accentColor}`,
         },
@@ -927,9 +931,9 @@ export const GenreStatBar = ({ genre = 'fantasy', value, max, type = 'hp' }) => 
     const theme = GENRE_THEMES[key] || GENRE_THEMES.fantasy;
 
     const colorMap = {
-        hp:      { color: theme.hpBarColor,      glow: theme.hpBarGlow },
-        mp:      { color: theme.mpBarColor,       glow: theme.mpBarGlow },
-        enemyHp: { color: theme.enemyHpBarColor,  glow: theme.enemyHpBarGlow },
+        hp: { color: theme.hpBarColor, glow: theme.hpBarGlow },
+        mp: { color: theme.mpBarColor, glow: theme.mpBarGlow },
+        enemyHp: { color: theme.enemyHpBarColor, glow: theme.enemyHpBarGlow },
     };
 
     const { color, glow } = colorMap[type] || colorMap.hp;
@@ -941,7 +945,7 @@ export const GenreStatBar = ({ genre = 'fantasy', value, max, type = 'hp' }) => 
 
     return (
         <div className="w-full h-2.5 bg-black/50 rounded-full overflow-hidden"
-             style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
+            style={{ border: '1px solid rgba(255,255,255,0.1)' }}>
             <div
                 className="h-full rounded-full transition-all duration-700 ease-out"
                 style={{
@@ -950,6 +954,254 @@ export const GenreStatBar = ({ genre = 'fantasy', value, max, type = 'hp' }) => 
                     boxShadow: `0 0 8px ${glow}`,
                 }}
             />
+        </div>
+    );
+};
+
+
+/* ─── Genre Platform ─────────────────────────────────────────────────── */
+export const GenrePlatform = ({ genre = 'fantasy', className = '', style = {} }) => {
+    const key = (genre || 'fantasy').toLowerCase();
+    const theme = getGenreTheme(key);
+
+    return (
+        <div className={`relative ${className}`} style={{ width: '220px', height: '80px', ...style }}>
+            <style>{`
+                @keyframes platformRotate {
+                    from { transform: rotateX(65deg) rotateZ(0deg); }
+                    to { transform: rotateX(65deg) rotateZ(360deg); }
+                }
+                @keyframes hexFlicker {
+                    0%, 100% { opacity: 0.6; filter: drop-shadow(0 0 10px ${theme.accentColor}); }
+                    50% { opacity: 0.9; filter: drop-shadow(0 0 25px ${theme.accentColor}); }
+                }
+                @keyframes bloodPulse {
+                    0%, 100% { transform: scale(1) rotateX(65deg); opacity: 0.85; }
+                    50% { transform: scale(1.04) rotateX(65deg); opacity: 1; }
+                }
+                @keyframes voidMorph {
+                    0%, 100% { border-radius: 45% 55% 40% 60% / 55% 45% 65% 35%; }
+                    33% { border-radius: 50% 50% 30% 70% / 45% 55% 40% 60%; }
+                    66% { border-radius: 40% 60% 50% 50% / 60% 40% 55% 45%; }
+                }
+                @keyframes mistDrift {
+                    0%, 100% { transform: rotateX(65deg) scale(1.2) translate(0, 0); opacity: 0.3; }
+                    50% { transform: rotateX(65deg) scale(1.3) translate(5px, -5px); opacity: 0.5; }
+                }
+            `}</style>
+
+            {key === 'fantasy' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <style>{`
+                        @keyframes runeRotate {
+                            from { transform: rotateX(65deg) rotateZ(0deg); }
+                            to { transform: rotateX(65deg) rotateZ(360deg); }
+                        }
+                    `}</style>
+
+                    {/* Solid Base */}
+                    <div className="absolute inset-[-15%] rounded-full opacity-70"
+                        style={{
+                            background: `radial-gradient(circle, ${theme.accentColor}88 0%, ${theme.accentColor}33 60%, transparent 85%)`,
+                            transform: 'rotateX(65deg)',
+                            border: `2px solid ${theme.accentColor}55`,
+                            boxShadow: `inset 0 0 20px ${theme.accentColor}44`
+                        }} />
+
+                    {/* Runic Ring */}
+                    <div className="absolute w-full h-full animate-[runeRotate_20s_linear_infinite]"
+                        style={{ transformStyle: 'preserve-3d' }}>
+                        {['ᚠ', 'ᚢ', 'ᚦ', 'ᚨ', 'ᚱ', 'ᚲ', 'ᚷ', 'ᚹ', 'ᚺ', 'ᚾ', 'ᛁ', 'ᛃ', 'ᛇ', 'ᛈ', 'ᛉ', 'ᛊ', 'ᛏ', 'ᛒ', 'ᛖ', 'ᛗ', 'ᛚ', 'ᛜ', 'ᛞ', 'ᛟ'].map((rune, i) => {
+                            const angle = (i * 360) / 24;
+                            return (
+                                <div
+                                    key={i}
+                                    className="absolute left-1/2 top-1/2 text-xs font-bold"
+                                    style={{
+                                        color: theme.accentColor,
+                                        textShadow: `0 0 5px ${theme.accentColor}`,
+                                        transform: `rotateZ(${angle}deg) translateY(-85px) rotateX(-90deg)`,
+                                        transformOrigin: 'center center',
+                                    }}
+                                >
+                                    {rune}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Outer Rings */}
+                    <div className="absolute inset-0 rounded-full border border-double opacity-60 animate-[platformRotate_15s_linear_infinite_reverse]"
+                        style={{ borderColor: theme.accentColor }} />
+                    <div className="absolute inset-0 rounded-full border border-dashed opacity-40 animate-[platformRotate_30s_linear_infinite]"
+                        style={{ borderColor: theme.accentColor }} />
+                    <div className="absolute inset-0 rounded-full border border-dashed opacity-40 animate-[platformRotate_30s_linear_infinite_reverse]"
+                        style={{ borderColor: theme.accentColor }} />
+                    <div className="absolute inset-0 rounded-full border border-dashed opacity-40 animate-[platformRotate_45s_linear_infinite]"
+                        style={{ borderColor: theme.accentColor }} />
+                    {/* Inner Glow */}
+                    <div className="absolute inset-[-25%] rounded-full blur-3xl animate-pulse opacity-50"
+                        style={{ background: `radial-gradient(circle, ${theme.accentColor} 0%, transparent 70%)`, transform: 'rotateX(65deg)' }} />
+                </div>
+            )}
+
+            {key === 'horror' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <style>{`
+                        @keyframes bloodPulse {
+                            0%, 100% { opacity: 0.85; transform: rotateX(70deg) scale(1); }
+                            50% { opacity: 1; transform: rotateX(70deg) scale(1.04); }
+                        }
+                        @keyframes ripple1 {
+                            0% { transform: rotateX(70deg) scale(0.6); opacity: 0.6; }
+                            100% { transform: rotateX(70deg) scale(1.35); opacity: 0; }
+                        }
+                        @keyframes ripple2 {
+                            0% { transform: rotateX(70deg) scale(0.6); opacity: 0.5; }
+                            100% { transform: rotateX(70deg) scale(1.35); opacity: 0; }
+                        }
+                        @keyframes ripple3 {
+                            0% { transform: rotateX(70deg) scale(0.6); opacity: 0.4; }
+                            100% { transform: rotateX(70deg) scale(1.35); opacity: 0; }
+                        }
+                        @keyframes specShimmer {
+                            0%, 100% { opacity: 0.12; transform: rotateX(70deg) translate(-15%, -20%) scale(1); }
+                            40% { opacity: 0.28; transform: rotateX(70deg) translate(-12%, -22%) scale(1.1); }
+                            70% { opacity: 0.08; transform: rotateX(70deg) translate(-18%, -18%) scale(0.9); }
+                        }
+                        @keyframes rimBreath {
+                            0%, 100% { opacity: 0.3; transform: rotateX(70deg) scale(1); }
+                            50% { opacity: 0.6; transform: rotateX(70deg) scale(1.02); }
+                        }
+                        @keyframes outerGlowPulse {
+                            0%, 100% { opacity: 0.7; }
+                            50% { opacity: 1; }
+                        }
+                        @keyframes mistDrift {
+                            0%, 100% { transform: rotateX(70deg) scale(1) translateY(0px); opacity: 0.5; }
+                            33% { transform: rotateX(70deg) scale(1.06) translateY(-2px); opacity: 0.7; }
+                            66% { transform: rotateX(70deg) scale(0.97) translateY(1px); opacity: 0.45; }
+                        }
+                    `}</style>
+
+                    {/* Outer glow ring — slow pulse */}
+                    <div className="absolute"
+                        style={{
+                            width: '160%',
+                            height: '160%',
+                            borderRadius: '50%',
+                            background: 'radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(139,0,0,0.45) 75%, transparent 100%)',
+                            transform: 'rotateX(70deg)',
+                            animation: 'outerGlowPulse 3s ease-in-out infinite',
+                        }}
+                    />
+
+                    {/* Ripple 1 — slowest, outermost */}
+                    <div className="absolute"
+                        style={{
+                            width: '130%',
+                            height: '130%',
+                            borderRadius: '50%',
+                            border: '1.5px solid rgba(139,0,0,0.55)',
+                            transform: 'rotateX(70deg) scale(0.6)',
+                            animation: 'ripple1 3.2s ease-out infinite',
+                            animationDelay: '0s',
+                        }}
+                    />
+
+                    {/* Ripple 2 */}
+                    <div className="absolute"
+                        style={{
+                            width: '130%',
+                            height: '130%',
+                            borderRadius: '50%',
+                            border: '1px solid rgba(160,0,0,0.45)',
+                            transform: 'rotateX(70deg) scale(0.6)',
+                            animation: 'ripple2 3.2s ease-out infinite',
+                            animationDelay: '1.07s',
+                        }}
+                    />
+
+                    {/* Ripple 3 */}
+                    <div className="absolute"
+                        style={{
+                            width: '130%',
+                            height: '130%',
+                            borderRadius: '50%',
+                            border: '1px solid rgba(180,0,0,0.35)',
+                            transform: 'rotateX(70deg) scale(0.6)',
+                            animation: 'ripple3 3.2s ease-out infinite',
+                            animationDelay: '2.14s',
+                        }}
+                    />
+
+                    {/* Main blood pool — gentle breathe */}
+                    <div className="absolute"
+                        style={{
+                            width: '120%',
+                            height: '120%',
+                            borderRadius: '50%',
+                            background: 'radial-gradient(ellipse at 50% 40%, #3a0000 0%, #150000 45%, #000 100%)',
+                            transform: 'rotateX(70deg)',
+                            boxShadow: '0 0 24px 6px rgba(139,0,0,0.3), inset 0 0 20px rgba(0,0,0,0.9)',
+                            animation: 'bloodPulse 4s ease-in-out infinite',
+                        }}
+                    />
+
+                    {/* Inner crimson mist — drifts slowly */}
+                    <div className="absolute"
+                        style={{
+                            width: '70%',
+                            height: '55%',
+                            borderRadius: '50%',
+                            background: 'radial-gradient(ellipse at 45% 35%, rgba(200,0,0,0.22) 0%, transparent 70%)',
+                            transform: 'rotateX(70deg)',
+                            animation: 'mistDrift 5s ease-in-out infinite',
+                        }}
+                    />
+
+                    {/* Specular highlight — shimmer */}
+                    <div className="absolute"
+                        style={{
+                            width: '28%',
+                            height: '22%',
+                            borderRadius: '50%',
+                            background: 'radial-gradient(ellipse, rgba(255,40,40,0.14) 0%, transparent 100%)',
+                            transform: 'rotateX(70deg) translate(-15%, -20%)',
+                            animation: 'specShimmer 2.8s ease-in-out infinite',
+                        }}
+                    />
+
+                    {/* Dashed rim — breathes */}
+                    <div className="absolute"
+                        style={{
+                            width: '122%',
+                            height: '122%',
+                            borderRadius: '50%',
+                            border: '1px dashed rgba(139,0,0,0.3)',
+                            transform: 'rotateX(70deg)',
+                            animation: 'rimBreath 4s ease-in-out infinite',
+                            animationDelay: '0.5s',
+                        }}
+                    />
+                </div>
+            )}
+
+            {key === 'scifi' && (
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    {/* Holographic Hex Pad - Solid Base */}
+                    <div className="absolute inset-[-15%] opacity-90 animate-[hexFlicker_3s_ease_in_out_infinite]"
+                        style={{
+                            background: `radial-gradient(ellipse, ${theme.accentColor}55 0%, ${theme.accentColor}11 70%, transparent 90%)`,
+                            border: `3px solid ${theme.accentColor}`,
+                            borderRadius: '50%',
+                            transform: 'rotateX(65deg)',
+                            boxShadow: `0 0 40px ${theme.accentColor}88, inset 0 0 25px ${theme.accentColor}55`,
+                        }} />
+                    <div className="absolute inset-6 border-2 border-cyan-400/60 rounded-full"
+                        style={{ transform: 'rotateX(65deg)' }} />
+                </div>
+            )}
         </div>
     );
 };

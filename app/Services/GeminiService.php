@@ -267,11 +267,10 @@ DIFFICULTY & STAT RULES:
 - ON THE FINAL TURN ({$maxTurns}), the successful choices MUST deal massive enemy damage (-120) to officially kill the final boss and achieve a true VICTORY.
 
 YOUR TASK:
-**THIS IS THE ONE AND ONLY API CALL FOR THE ENTIRE GAME.**
-Generate ALL {$batchSize} remaining story turns as a single JSON response.
-Each turn has branching outcomes (one per choice) so the player navigates entirely client-side with NO further API calls.
+Generate the next {$batchSize} story turns as a single JSON response.
+Each turn has branching outcomes (one per choice) so the player navigates entirely client-side.
 
-Because this is the ONLY call, you MUST generate the complete adventure arc:
+Because this is a chunk of the adventure, you MUST advance the narrative appropriately for the current Turn:
 - Turn 1-5: Introduce setting, first weak enemy.
 - Turn 6-13: Escalate conflict, find powerful items, cycle to stronger enemies.
 - Turn 14-{$maxTurns}: The climax against the Final Boss. Turn {$maxTurns} must contain the definitive killing blow.
