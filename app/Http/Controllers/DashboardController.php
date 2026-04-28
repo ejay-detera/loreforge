@@ -50,14 +50,14 @@ class DashboardController extends Controller
                 'total'      => $totalGames,
                 'victories'  => $victories,
                 'defeats'    => $defeats,
-                'favGenre'   => $favGenre ? ucfirst($favGenre->genre) : 'Fantasy',
+                'favGenre'   => $favGenre ? ucfirst($favGenre->genre) : 'None',
             ];
         } catch (\Exception $e) {
             return [
                 'total'     => 0,
                 'victories' => 0,
                 'defeats'   => 0,
-                'favGenre'  => 'Fantasy',
+                'favGenre'  => 'None',
             ];
         }
     }
@@ -72,10 +72,10 @@ class DashboardController extends Controller
                 ->map(function ($session) {
                     return [
                         'character' => $session->character_name ?? 'Unknown',
-                        'genre'     => ucfirst($session->genre ?? 'fantasy'),
+                        'genre'     => $this->formatGenre($session->genre ?? 'fantasy'),
                         'turns'     => $session->turn_count ?? 0,
                         'maxTurns'  => $session->max_turns ?? 20,
-                        'outcome'   => ucfirst($session->outcome ?? 'In Progress'),
+                        'outcome'   => $this->formatOutcome($session->outcome, $session->status),
                     ];
                 });
         } catch (\Exception $e) {
@@ -86,20 +86,20 @@ class DashboardController extends Controller
     private function getSpotlightCampaigns()
     {
         try {
-            return SharedCampaign::with(['session', 'sharedBy'])
+            return SharedCampaign::with(['gameSession', 'sharedByUser'])
                 ->latest('shared_at')
                 ->take(3)
                 ->get()
                 ->map(function ($campaign) {
-                    $session = $campaign->session;
+                    $session = $campaign->gameSession;
 
                     return [
                         'icon'        => $this->getGenreIcon($session->genre ?? 'fantasy'),
-                        'name'        => $session->character_name . "'s Adventure" ?? 'Unknown Adventure',
-                        'author'      => $campaign->sharedBy->username ?? 'Unknown',
-                        'genre'       => ucfirst($session->genre ?? 'fantasy'),
+                        'name'        => ($session->character_name ?? 'Unknown') . "'s Adventure",
+                        'author'      => $campaign->sharedByUser->username ?? 'Unknown',
+                        'genre'       => $this->formatGenre($session->genre ?? 'fantasy'),
                         'turns'       => $session->turn_count ?? 0,
-                        'outcome'     => ucfirst($session->outcome ?? 'completed'),
+                        'outcome'     => $this->formatOutcome($session->outcome, $session->status),
                         'preview'     => $campaign->story_preview ?? '',
                         'accentColor' => $this->getGenreAccentColor($session->genre ?? 'fantasy'),
                     ];
@@ -119,9 +119,9 @@ class DashboardController extends Controller
             if ($lastSession) {
                 return [
                     'id'     => $lastSession->id,
-                    'genre'  => ucfirst($lastSession->genre ?? 'fantasy'),
+                    'genre'  => $this->formatGenre($lastSession->genre ?? 'fantasy'),
                     'turn'   => $lastSession->turn_count ?? 0,
-                    'status' => $lastSession->status ?? 'active',
+                    'status' => $this->formatOutcome($lastSession->outcome, $lastSession->status),
                     'outcome'=> $lastSession->outcome ?? null,
                 ];
             }
@@ -148,5 +148,23 @@ class DashboardController extends Controller
             'scifi'   => '#00BFFF',
             'horror'  => '#e05555',
         ][strtolower($genre)] ?? '#C9A84C';
+    }
+
+    private function formatGenre($genre)
+    {
+        return [
+            'fantasy' => 'Fantasy',
+            'scifi'   => 'Sci-Fi',
+            'horror'  => 'Horror',
+        ][strtolower($genre)] ?? 'Fantasy';
+    }
+
+    private function formatOutcome($outcome, $status = null)
+    {
+        if ($outcome === 'victory' || $status === 'victory') return 'Victory';
+        if ($outcome === 'defeat' || $outcome === 'defeated' || $status === 'defeated') return 'Defeat';
+        if ($status === 'abandoned') return 'Abandoned';
+        
+        return 'Active';
     }
 }

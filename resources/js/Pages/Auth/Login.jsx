@@ -98,7 +98,7 @@ function ConstellationBackground() {
   );
 }
 
-export default function Login({ status, canResetPassword }) {
+export default function Login({ status, canResetPassword, isBlocked }) {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const { props, auth } = usePage();
     const { message, type } = props;
@@ -193,7 +193,12 @@ export default function Login({ status, canResetPassword }) {
                                     </div>
 
                                     {status && (
-                                        <div className="mb-4 md:mb-6 p-3 md:p-4 bg-accent-emerald-green/20 border border-accent-emerald-green/50 rounded-lg text-sm text-accent-emerald-green">
+                                        <div className={`mb-4 md:mb-6 p-3 md:p-4 rounded-lg text-sm border ${
+                                            isBlocked 
+                                                ? 'bg-red-500/20 border-red-500/50 text-red-400' 
+                                                : 'bg-accent-emerald-green/20 border-accent-emerald-green/50 text-accent-emerald-green'
+                                        }`}>
+                                            <i className={`fas ${isBlocked ? 'fa-lock' : 'fa-info-circle'} mr-2`}></i>
                                             {status}
                                         </div>
                                     )}
@@ -217,10 +222,11 @@ export default function Login({ status, canResetPassword }) {
                                                 type="email"
                                                 value={data.email}
                                                 onChange={(e) => setData('email', e.target.value)}
-                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300"
+                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 placeholder="Enter your email"
                                                 autoComplete="username"
                                                 required
+                                                disabled={isBlocked}
                                             />
                                             {errors.email && (
                                                 <div className="mt-2 text-sm text-red-400">{errors.email}</div>
@@ -235,10 +241,11 @@ export default function Login({ status, canResetPassword }) {
                                                 type="password"
                                                 value={data.password}
                                                 onChange={(e) => setData('password', e.target.value)}
-                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300"
+                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 placeholder="Enter your password"
                                                 autoComplete="current-password"
                                                 required
+                                                disabled={isBlocked}
                                             />
                                             {errors.password && (
                                                 <div className="mt-2 text-sm text-red-400">{errors.password}</div>
@@ -251,7 +258,8 @@ export default function Login({ status, canResetPassword }) {
                                                     type="checkbox"
                                                     checked={data.remember}
                                                     onChange={(e) => setData('remember', e.target.checked)}
-                                                    className="w-4 h-4 bg-bg-deep-navy border-border-subtle-dark rounded focus:ring-accent-emerald-green/20 focus:border-accent-emerald-green"
+                                                    className="w-4 h-4 bg-bg-deep-navy border-border-subtle-dark rounded focus:ring-accent-emerald-green/20 focus:border-accent-emerald-green disabled:opacity-50"
+                                                    disabled={isBlocked}
                                                 />
                                                 <span className="ml-2 text-sm text-text-muted-cool-gray">
                                                     Remember me
@@ -261,13 +269,22 @@ export default function Login({ status, canResetPassword }) {
 
                                         <button
                                             type="submit"
-                                            disabled={processing}
-                                            className="w-full py-3 md:py-4 font-semibold rounded-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-accent-emerald-green to-accent-hover-lighter-green text-white hover:shadow-lg hover:shadow-accent-emerald-green/30"
+                                            disabled={processing || isBlocked}
+                                            className={`w-full py-3 md:py-4 font-semibold rounded-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                                isBlocked
+                                                    ? 'bg-red-600 text-white cursor-not-allowed'
+                                                    : 'bg-gradient-to-r from-accent-emerald-green to-accent-hover-lighter-green text-white hover:shadow-lg hover:shadow-accent-emerald-green/30'
+                                            }`}
                                         >
                                             {processing ? (
                                                 <span className="flex items-center justify-center">
                                                     <i className="fas fa-spinner fa-spin mr-2"></i>
                                                     Signing in...
+                                                </span>
+                                            ) : isBlocked ? (
+                                                <span className="flex items-center justify-center">
+                                                    <i className="fas fa-lock mr-2"></i>
+                                                    Access Restricted
                                                 </span>
                                             ) : (
                                                 <span className="flex items-center justify-center">

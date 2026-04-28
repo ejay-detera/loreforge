@@ -1,229 +1,223 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUser, faTrophy, faSkull, faScroll, faClock } from '@fortawesome/free-solid-svg-icons';
+import CampaignDetailModal from '@/Components/Game/CampaignDetailModal';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Community() {
-    const [activeTab, setActiveTab] = useState('leaderboard');
+    const { auth } = usePage().props;
+    const [activeGenre, setActiveGenre] = useState('all');
+    const [campaigns, setCampaigns] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [pagination, setPagination] = useState(null);
+    const [page, setPage] = useState(1);
+    const [selectedCampaignId, setSelectedCampaignId] = useState(null);
 
-    const leaderboard = [
-        { rank: 1, name: "DragonSlayer99", score: 15420, games: 342, winRate: 78, avatar: "🐉" },
-        { rank: 2, name: "SpaceExplorer", score: 14850, games: 298, winRate: 82, avatar: "🚀" },
-        { rank: 3, name: "ShadowHunter", score: 13980, games: 412, winRate: 71, avatar: "🗡️" },
-        { rank: 4, name: "MysticMage", score: 12500, games: 256, winRate: 85, avatar: "🧙‍♂️" },
-        { rank: 5, name: "CyberNinja", score: 11800, games: 189, winRate: 79, avatar: "🥷" },
-    ];
+    useEffect(() => {
+        fetchCampaigns();
+    }, [activeGenre, page]);
 
-    const recentActivity = [
-        {
-            user: "DragonSlayer99",
-            action: "completed",
-            details: "The Dragon's Lair on Legendary difficulty",
-            time: "5 minutes ago",
-            avatar: "🐉"
-        },
-        {
-            user: "SpaceExplorer",
-            action: "achieved",
-            details: "Master Strategist badge",
-            time: "12 minutes ago",
-            avatar: "🚀"
-        },
-        {
-            user: "ShadowHunter",
-            action: "started",
-            details: "new Horror campaign",
-            time: "25 minutes ago",
-            avatar: "🗡️"
-        },
-        {
-            user: "MysticMage",
-            action: "joined",
-            details: "multiplayer session",
-            time: "1 hour ago",
-            avatar: "🧙‍♂️"
-        },
-        {
-            user: "CyberNinja",
-            action: "shared",
-            details: "custom campaign 'Neon Dreams'",
-            time: "2 hours ago",
-            avatar: "🥷"
+    const fetchCampaigns = async () => {
+        setLoading(true);
+        try {
+            const url = `/api/community?genre=${activeGenre}&page=${page}`;
+            const res = await axios.get(url);
+            if (res.data.success) {
+                setCampaigns(res.data.campaigns);
+                setPagination(res.data.pagination);
+            }
+        } catch (err) {
+            console.error('Failed to fetch campaigns', err);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
-    const forums = [
-        {
-            title: "Best strategies for Dragon bosses?",
-            author: "NewPlayer123",
-            replies: 24,
-            views: 156,
-            lastActivity: "2 hours ago",
-            category: "Strategy"
-        },
-        {
-            title: "Horror mode is too difficult",
-            author: "ScaredGamer",
-            replies: 18,
-            views: 89,
-            lastActivity: "4 hours ago",
-            category: "Discussion"
-        },
-        {
-            title: "Custom campaign showcase",
-            author: "CreativeMind",
-            replies: 42,
-            views: 312,
-            lastActivity: "6 hours ago",
-            category: "Showcase"
-        },
-        {
-            title: "Looking for multiplayer partners",
-            author: "TeamPlayer",
-            replies: 8,
-            views: 45,
-            lastActivity: "8 hours ago",
-            category: "LFG"
+    const getGenreTheme = (genre) => {
+        switch (genre?.toLowerCase()) {
+            case 'fantasy': return { badge: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', hover: 'hover:border-emerald-500/50' };
+            case 'horror': return { badge: 'bg-red-500/10 text-red-400 border-red-500/20', hover: 'hover:border-red-500/50' };
+            case 'scifi': return { badge: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20', hover: 'hover:border-cyan-500/50' };
+            default: return { badge: 'bg-white/10 text-white/70 border-white/20', hover: 'hover:border-white/50' };
         }
-    ];
+    };
+
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1
+            }
+        }
+    };
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 20 },
+        visible: { 
+            opacity: 1, 
+            y: 0,
+            transition: { duration: 0.5, ease: "easeOut" }
+        }
+    };
 
     return (
         <AuthenticatedLayout>
             <Head title="Community" />
             
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* Tab Navigation */}
-                <div className="flex space-x-1 mb-8 border-b border-border-subtle-dark/50">
-                    {['leaderboard', 'activity', 'forums'].map((tab) => (
+            <motion.div 
+                initial="hidden"
+                animate="visible"
+                variants={containerVariants}
+                className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+            >
+                <motion.div variants={itemVariants} className="mb-10 text-center">
+                    <h1 className="text-3xl font-black text-white tracking-widest uppercase mb-2">Community Campaigns</h1>
+                    <p className="text-white/50">Explore legendary tales shared by other players and start your own adventure from their paths.</p>
+                </motion.div>
+
+                {/* Genre Tabs */}
+                <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-10">
+                    {['all', 'fantasy', 'horror', 'scifi'].map((genre) => (
                         <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-6 py-3 font-medium text-sm capitalize transition-all duration-300 border-b-2 ${
-                                activeTab === tab
-                                    ? 'text-accent-emerald-green border-accent-emerald-green'
-                                    : 'text-text-muted-cool-gray border-transparent hover:text-text-primary-off-white'
+                            key={genre}
+                            onClick={() => { setActiveGenre(genre); setPage(1); }}
+                            className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold uppercase tracking-[0.15em] transition-all duration-300 border relative overflow-hidden group ${
+                                activeGenre === genre
+                                    ? 'bg-white/10 text-white border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.1)]'
+                                    : 'bg-transparent text-white/40 border-transparent hover:text-white/80 hover:bg-white/5'
                             }`}
                         >
-                            {tab === 'leaderboard' ? 'Leaderboard' : tab === 'activity' ? 'Activity' : 'Forums'}
+                            <span className="relative z-10">{genre}</span>
+                            {activeGenre === genre && (
+                                <motion.div 
+                                    layoutId="activeTab"
+                                    className="absolute inset-0 bg-white/5 z-0"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
                         </button>
                     ))}
-                </div>
+                </motion.div>
 
-                {/* Leaderboard Tab */}
-                {activeTab === 'leaderboard' && (
-                    <div className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 overflow-hidden">
-                        <div className="p-6">
-                            <h3 className="text-lg font-semibold text-text-primary-off-white mb-6">
-                                Top Players
-                            </h3>
-                            <div className="space-y-4">
-                                {leaderboard.map((player) => (
-                                    <div key={player.rank} className="flex items-center justify-between p-4 bg-surface-dark-charcoal/30 rounded-lg hover:bg-surface-dark-charcoal/50 transition-all duration-300">
-                                        <div className="flex items-center space-x-4">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
-                                                player.rank === 1 ? 'bg-highlight-warm-gold text-bg-deep-navy' :
-                                                player.rank === 2 ? 'bg-gray-400 text-bg-deep-navy' :
-                                                player.rank === 3 ? 'bg-orange-600 text-bg-deep-navy' :
-                                                'bg-surface-dark-charcoal text-text-muted-cool-gray'
-                                            }`}>
-                                                {player.rank}
-                                            </div>
-                                            <div className="text-2xl">{player.avatar}</div>
-                                            <div>
-                                                <div className="font-semibold text-text-primary-off-white">
-                                                    {player.name}
-                                                </div>
-                                                <div className="text-sm text-text-muted-cool-gray">
-                                                    {player.games} games • {player.winRate}% win rate
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-xl font-bold text-accent-emerald-green">
-                                                {player.score.toLocaleString()}
-                                            </div>
-                                            <div className="text-sm text-text-muted-cool-gray">points</div>
-                                        </div>
-                                    </div>
-                                ))}
+                {/* Grid Content with AnimatePresence for smooth transitions */}
+                <AnimatePresence mode="wait">
+                    {loading && campaigns.length === 0 ? (
+                        <motion.div 
+                            key="loading"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="flex justify-center py-20"
+                        >
+                            <div className="relative">
+                                <div className="w-12 h-12 border-2 border-white/10 border-t-white rounded-full animate-spin"></div>
+                                <div className="absolute inset-0 border-2 border-transparent border-b-accent-emerald-green/50 rounded-full animate-[spin_1.5s_linear_infinite]"></div>
                             </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Activity Tab */}
-                {activeTab === 'activity' && (
-                    <div className="space-y-4">
-                        {recentActivity.map((activity, index) => (
-                            <div key={index} className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-6 hover:border-accent-emerald-green/50 transition-all duration-300">
-                                <div className="flex items-start space-x-4">
-                                    <div className="text-2xl">{activity.avatar}</div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center space-x-2 mb-1">
-                                            <span className="font-semibold text-text-primary-off-white">
-                                                {activity.user}
-                                            </span>
-                                            <span className="text-text-muted-cool-gray">
-                                                {activity.action}
+                        </motion.div>
+                    ) : campaigns.length === 0 ? (
+                        <motion.div 
+                            key="empty"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="text-center py-20 bg-white/5 border border-white/10 rounded-2xl"
+                        >
+                            <FontAwesomeIcon icon={faScroll} className="text-4xl text-white/20 mb-4" />
+                            <h3 className="text-xl font-bold text-white/70 mb-2">No Campaigns Found</h3>
+                            <p className="text-white/40">Be the first to share your adventure in this genre.</p>
+                        </motion.div>
+                    ) : (
+                        <motion.div 
+                            key={activeGenre + page}
+                            initial="hidden"
+                            animate="visible"
+                            exit="hidden"
+                            variants={containerVariants}
+                            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                        >
+                            {campaigns.map((camp, index) => {
+                                const theme = getGenreTheme(camp.genre);
+                                const isVictory = camp.outcome === 'victory';
+                                
+                                return (
+                                    <motion.div 
+                                        key={camp.id}
+                                        variants={itemVariants}
+                                        whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                                        onClick={() => setSelectedCampaignId(camp.id)}
+                                        className={`bg-[#0A0D14]/80 backdrop-blur-md rounded-2xl p-6 border border-white/10 cursor-pointer transition-colors duration-300 flex flex-col h-full group ${theme.hover}`}
+                                    >
+                                        <div className="flex justify-between items-start mb-4">
+                                            <h3 className="text-xl font-black text-white truncate pr-4 group-hover:text-accent-emerald-green transition-colors">{camp.character_name}</h3>
+                                            <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${theme.badge}`}>
+                                                {camp.genre}
                                             </span>
                                         </div>
-                                        <div className="text-text-primary-off-white mb-2">
-                                            {activity.details}
+                                        
+                                        <div className="flex items-center gap-2 text-xs text-white/50 mb-4">
+                                            <FontAwesomeIcon icon={faUser} className="text-[10px]" />
+                                            <span>{camp.author}</span>
+                                            <span className="mx-1">•</span>
+                                            <FontAwesomeIcon icon={faClock} className="text-[10px]" />
+                                            <span>{camp.shared_at}</span>
                                         </div>
-                                        <div className="text-sm text-text-muted-cool-gray">
-                                            {activity.time}
+                                        
+                                        <div className="flex-1 bg-black/40 rounded-xl p-4 border border-white/5 mb-4 group-hover:bg-black/60 transition-colors">
+                                            <p className="text-sm text-white/70 leading-relaxed italic line-clamp-3">
+                                                "{camp.story_preview}"
+                                            </p>
                                         </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                                        
+                                        <div className="flex justify-between items-center pt-4 border-t border-white/10 mt-auto">
+                                            <span className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${isVictory ? 'text-green-400' : 'text-red-400'}`}>
+                                                <FontAwesomeIcon icon={isVictory ? faTrophy : faSkull} />
+                                                {isVictory ? 'Victory' : 'Defeat'}
+                                            </span>
+                                            <span className="text-xs text-white/40 font-bold uppercase tracking-wider">
+                                                {camp.turn_count} Turns
+                                            </span>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
-                {/* Forums Tab */}
-                {activeTab === 'forums' && (
-                    <div className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 overflow-hidden">
-                        <div className="p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-lg font-semibold text-text-primary-off-white">
-                                    Community Forums
-                                </h3>
-                                <button className="px-4 py-2 bg-accent-emerald-green text-bg-deep-navy rounded-lg font-medium hover:bg-accent-hover-lighter-green transition-colors duration-300">
-                                    <i className="fas fa-plus mr-2"></i>
-                                    New Topic
-                                </button>
-                            </div>
-                            <div className="space-y-4">
-                                {forums.map((forum, index) => (
-                                    <div key={index} className="p-4 bg-surface-dark-charcoal/30 rounded-lg hover:bg-surface-dark-charcoal/50 transition-all duration-300 cursor-pointer">
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <h4 className="font-semibold text-text-primary-off-white mb-2 hover:text-accent-emerald-green transition-colors duration-300">
-                                                    {forum.title}
-                                                </h4>
-                                                <div className="flex items-center space-x-4 text-sm text-text-muted-cool-gray">
-                                                    <span>by {forum.author}</span>
-                                                    <span>•</span>
-                                                    <span>{forum.replies} replies</span>
-                                                    <span>•</span>
-                                                    <span>{forum.views} views</span>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className="px-2 py-1 bg-surface-dark-charcoal rounded text-xs text-accent-emerald-green mb-2 inline-block">
-                                                    {forum.category}
-                                                </span>
-                                                <div className="text-sm text-text-muted-cool-gray">
-                                                    {forum.lastActivity}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+
+                {/* Pagination */}
+                {pagination && pagination.last_page > 1 && (
+                    <div className="flex justify-center items-center gap-4 mt-12">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-bold text-white hover:bg-white/10 disabled:opacity-30 transition-all uppercase tracking-widest"
+                        >
+                            Prev
+                        </button>
+                        <span className="text-sm font-bold text-white/50">
+                            Page {pagination.current_page} of {pagination.last_page}
+                        </span>
+                        <button
+                            onClick={() => setPage(p => Math.min(pagination.last_page, p + 1))}
+                            disabled={page === pagination.last_page}
+                            className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-sm font-bold text-white hover:bg-white/10 disabled:opacity-30 transition-all uppercase tracking-widest"
+                        >
+                            Next
+                        </button>
                     </div>
                 )}
-            </div>
+            </motion.div>
+
+            <CampaignDetailModal 
+                campaignId={selectedCampaignId}
+                isOpen={!!selectedCampaignId}
+                onClose={() => setSelectedCampaignId(null)}
+            />
         </AuthenticatedLayout>
     );
 }

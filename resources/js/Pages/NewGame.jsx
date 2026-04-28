@@ -174,7 +174,8 @@ function GenreThumbnail({ genre, isSelected, onClick }) {
                     <img
                         src={genre.sprite}
                         alt={genre.name}
-                        className="transition-all duration-300"
+                        draggable={false}
+                        className="transition-all duration-300 sprite"
                         style={{
                             width: '80%', height: '70%', objectFit: 'contain',
                             filter: active ? `drop-shadow(0 0 10px ${genre.accentGlow}) brightness(1.2)` : 'drop-shadow(0 0 6px rgba(0,0,0,0.8))',
@@ -337,6 +338,8 @@ export default function NewGame() {
                             <img
                                 src={selected.sprite}
                                 alt={selected.name}
+                                draggable={false}
+                                className="sprite"
                                 style={{
                                     height: '85%',
                                     maxWidth: '140%',

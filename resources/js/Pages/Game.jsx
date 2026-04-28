@@ -12,6 +12,8 @@ import ExitConfirmationModal from '@/Components/Game/ExitConfirmationModal';
 import TypewriterText from '@/Components/Game/TypewriterText';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faExclamationTriangle, faTrophy, faSkull, faPlus, faBolt } from '@fortawesome/free-solid-svg-icons';
+import SoundtrackPlayer from '@/Components/Game/SoundtrackPlayer';
+
 
 /* ─── Main component ─────────────────────────────────────────────────── */
 const Game = () => {
@@ -40,6 +42,8 @@ const Game = () => {
     const [pendingOutcome, setPendingOutcome] = useState(null);
     const [showEnemyDmg, setShowEnemyDmg] = useState(null);
     const [showPlayerDmg, setShowPlayerDmg] = useState(null);
+    const [showActionText, setShowActionText] = useState(null);
+    const [showScanOverlay, setShowScanOverlay] = useState(false);
 
     useEffect(() => {
         const saved = localStorage.getItem('dontShowExitModal');
@@ -176,40 +180,201 @@ const Game = () => {
         if (!outcome) return;
 
         setPendingOutcome({ choiceKey, outcome });
-
-        setBattlePhase('player-attack');
         setShowEnemyDmg(null);
         setShowPlayerDmg(null);
+        setShowActionText(null);
+        setShowScanOverlay(false);
 
-        setTimeout(() => {
-            const enemyDmg = outcome.enemy_hp_change ?? 0;
-            if (enemyDmg !== 0) {
-                setShowEnemyDmg({ value: enemyDmg, color: '#ff4444' });
-                setEnemyHP(prev => Math.max(0, prev + enemyDmg));
-            }
-        }, 350);
+        const actionType = outcome.action_type ?? 'attack';
+        const actionResult = outcome.action_result ?? 'neutral';
+        let healthChange = outcome.health_change ?? 0;
+        let manaChange = outcome.mana_change ?? 0;
+        const enemyDmg = outcome.enemy_hp_change ?? 0;
 
-        const playerTakesDamage = (outcome.health_change ?? 0) < 0;
-        setTimeout(() => {
-            if (playerTakesDamage) {
-                setBattlePhase('enemy-attack');
+        // Force values if Gemini hallucinated 0
+        const choiceStr = String(choiceKey).toLowerCase();
+        if (choiceStr.includes('healing potion') || choiceStr.includes('hp potion')) {
+            healthChange = Math.max(25, healthChange);
+        }
+        if (choiceStr.includes('mana potion') || choiceStr.includes('mp potion')) {
+            manaChange = Math.max(20, manaChange);
+        }
+
+        const playerTakesDamage = healthChange < 0;
+        const playerHeals = healthChange > 0;
+        const playerRestoresMana = manaChange > 0;
+
+        // ── Determine which battle phase to use ──
+        if (actionType === 'item' || actionType === 'heal') {
+            // Healing / Mana potion usage
+            if (playerHeals) {
+                setBattlePhase('player-heal');
                 setTimeout(() => {
-                    setShowPlayerDmg({
-                        value: outcome.health_change,
-                        color: '#ff6666',
-                    });
-                }, 350);
+                    setShowActionText({ text: `+${healthChange} HP`, color: '#10b981' });
+                }, 200);
+            } else if (playerRestoresMana) {
+                setBattlePhase('player-mana');
+                setTimeout(() => {
+                    setShowActionText({ text: `+${manaChange} MP`, color: '#3b82f6' });
+                }, 200);
+            } else {
+                setBattlePhase('player-heal');
+                setTimeout(() => {
+                    setShowActionText({ text: 'USED!', color: '#f5c842' });
+                }, 200);
             }
-        }, 900);
+            // Item use also deals damage to enemy sometimes (weapon items)
+            if (enemyDmg !== 0) {
+                setTimeout(() => {
+                    setShowEnemyDmg({ value: enemyDmg, color: '#ff4444' });
+                    setEnemyHP(prev => Math.max(0, prev + enemyDmg));
+                }, 400);
+            }
+            setTimeout(async () => {
+                setBattlePhase(null);
+                setShowEnemyDmg(null);
+                setShowPlayerDmg(null);
+                setShowActionText(null);
+                setPendingOutcome(null);
+                await resolveChoice(choiceKey);
+            }, 1400);
 
-        const totalDuration = playerTakesDamage ? 1800 : 900;
-        setTimeout(async () => {
-            setBattlePhase(null);
-            setShowEnemyDmg(null);
-            setShowPlayerDmg(null);
-            setPendingOutcome(null);
-            await resolveChoice(choiceKey);
-        }, totalDuration);
+        } else if (actionType === 'utility') {
+            // Dodge or Scan
+            if (actionResult === 'success') {
+                const isDodge = choiceKey.toLowerCase().includes('dodge') || choiceKey.toLowerCase().includes('evade') || choiceKey.toLowerCase().includes('roll');
+                const isScan = choiceKey.toLowerCase().includes('scan') || choiceKey.toLowerCase().includes('analyze') || choiceKey.toLowerCase().includes('inspect');
+
+                if (isScan) {
+                    setShowScanOverlay(true);
+                    setTimeout(() => {
+                        setShowActionText({ text: 'SCANNED!', color: '#00BFFF' });
+                    }, 300);
+                    setTimeout(async () => {
+                        setBattlePhase(null);
+                        setShowScanOverlay(false);
+                        setShowActionText(null);
+                        setPendingOutcome(null);
+                        await resolveChoice(choiceKey);
+                    }, 1400);
+                } else {
+                    // Dodge success
+                    setBattlePhase('player-dodge');
+                    setTimeout(() => {
+                        setShowActionText({ text: 'DODGED!', color: '#10b981' });
+                    }, 200);
+                    setTimeout(async () => {
+                        setBattlePhase(null);
+                        setShowActionText(null);
+                        setPendingOutcome(null);
+                        await resolveChoice(choiceKey);
+                    }, 1200);
+                }
+            } else {
+                // Dodge/utility failed — player takes damage
+                setBattlePhase('player-dodge');
+                setTimeout(() => {
+                    setShowActionText({ text: 'FAILED!', color: '#ff4444' });
+                }, 200);
+                setTimeout(() => {
+                    if (playerTakesDamage) {
+                        setBattlePhase('enemy-attack');
+                        setTimeout(() => {
+                            setShowPlayerDmg({ value: healthChange, color: '#ff6666' });
+                        }, 350);
+                    }
+                }, 700);
+                setTimeout(async () => {
+                    setBattlePhase(null);
+                    setShowEnemyDmg(null);
+                    setShowPlayerDmg(null);
+                    setShowActionText(null);
+                    setPendingOutcome(null);
+                    await resolveChoice(choiceKey);
+                }, 1800);
+            }
+
+        } else if (actionType === 'flee') {
+            setBattlePhase('player-flee');
+            if (actionResult === 'success') {
+                setTimeout(() => {
+                    setShowActionText({ text: 'ESCAPED!', color: '#f5c842' });
+                }, 300);
+                setTimeout(async () => {
+                    setBattlePhase(null);
+                    setShowActionText(null);
+                    setPendingOutcome(null);
+                    await resolveChoice(choiceKey);
+                }, 1500);
+            } else {
+                setTimeout(() => {
+                    setShowActionText({ text: 'FAILED!', color: '#ff4444' });
+                }, 300);
+                setTimeout(() => {
+                    if (playerTakesDamage) {
+                        setBattlePhase('enemy-attack');
+                        setTimeout(() => {
+                            setShowPlayerDmg({ value: healthChange, color: '#ff6666' });
+                        }, 350);
+                    }
+                }, 800);
+                setTimeout(async () => {
+                    setBattlePhase(null);
+                    setShowEnemyDmg(null);
+                    setShowPlayerDmg(null);
+                    setShowActionText(null);
+                    setPendingOutcome(null);
+                    await resolveChoice(choiceKey);
+                }, 1800);
+            }
+
+        } else if (actionType === 'defend') {
+            setBattlePhase('player-defend');
+            setTimeout(() => {
+                setShowActionText({ text: 'DEFENDED!', color: '#a78bfa' });
+            }, 200);
+            if (playerTakesDamage) {
+                setTimeout(() => {
+                    setShowPlayerDmg({ value: healthChange, color: '#ff6666' });
+                }, 500);
+            }
+            setTimeout(async () => {
+                setBattlePhase(null);
+                setShowPlayerDmg(null);
+                setShowActionText(null);
+                setPendingOutcome(null);
+                await resolveChoice(choiceKey);
+            }, 1400);
+
+        } else {
+            // Default: attack / magic — use existing slash + impact effects
+            setBattlePhase('player-attack');
+
+            setTimeout(() => {
+                if (enemyDmg !== 0) {
+                    setShowEnemyDmg({ value: enemyDmg, color: '#ff4444' });
+                    setEnemyHP(prev => Math.max(0, prev + enemyDmg));
+                }
+            }, 350);
+
+            setTimeout(() => {
+                if (playerTakesDamage) {
+                    setBattlePhase('enemy-attack');
+                    setTimeout(() => {
+                        setShowPlayerDmg({ value: healthChange, color: '#ff6666' });
+                    }, 350);
+                }
+            }, 900);
+
+            const totalDuration = playerTakesDamage ? 1800 : 900;
+            setTimeout(async () => {
+                setBattlePhase(null);
+                setShowEnemyDmg(null);
+                setShowPlayerDmg(null);
+                setPendingOutcome(null);
+                await resolveChoice(choiceKey);
+            }, totalDuration);
+        }
     };
 
     const inventoryItems = Array.isArray(inventory)
@@ -421,11 +586,11 @@ const Game = () => {
                 {/* ── ENEMY STAT BOX — top LEFT ── */}
                 <div
                     className={`absolute top-3 left-4 z-20 ${spritesLoaded ? 'stat-fade-in' : ''}`}
-                    style={{ maxWidth: '220px' }}
+                    style={{ maxWidth: '280px' }}
                 >
                     <GenreCard genre={genre} className="px-3 py-2">
                         <div className="flex items-center justify-between gap-4 mb-1.5">
-                            <span className="font-bold text-white text-sm truncate game-text">
+                            <span className="font-bold text-white text-sm game-text" style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.3' }}>
                                 {apiEnemyName || fallbackEnemyName}
                             </span>
                         </div>
@@ -461,7 +626,8 @@ const Game = () => {
                     <img
                         src={`/Sprites/${genreFolder}/${enemySprite}`}
                         alt={apiEnemyName || fallbackEnemyName}
-                        className="rounded-lg"
+                        draggable={false}
+                        className="rounded-lg sprite"
                         style={{
                             width: '125px',
                             height: '125px',
@@ -519,9 +685,14 @@ const Game = () => {
                     </>
                 )}
 
+                {/* ── SCAN OVERLAY EFFECT ── */}
+                {showScanOverlay && (
+                    <div className="battle-scan-overlay" key={`scan-${currentTurn}-${Date.now()}`} />
+                )}
+
                 {/* ── PLAYER SPRITE — lower left, standing on platform on the ground line ── */}
                 <div
-                    className={`absolute z-10 ${spritesLoaded ? 'slide-in-left bounce-in' : ''} ${battlePhase === 'player-attack' ? 'battle-player-attack' : ''} ${battlePhase === 'enemy-attack' ? 'battle-player-hit' : ''}`}
+                    className={`absolute z-10 ${spritesLoaded ? 'slide-in-left bounce-in' : ''} ${battlePhase === 'player-attack' ? 'battle-player-attack' : ''} ${battlePhase === 'enemy-attack' ? 'battle-player-hit' : ''} ${battlePhase === 'player-heal' ? 'battle-player-heal' : ''} ${battlePhase === 'player-mana' ? 'battle-player-mana' : ''} ${battlePhase === 'player-dodge' ? 'battle-player-dodge' : ''} ${battlePhase === 'player-flee' ? 'battle-player-flee' : ''} ${battlePhase === 'player-defend' ? 'battle-player-defend' : ''}`}
                     style={{
                         // bottom of wrapper = ground line - half of player ellipse height (~30px)
                         // so ellipse center sits exactly on the ground line
@@ -533,7 +704,8 @@ const Game = () => {
                     <img
                         src={`/Sprites/${genreFolder}/${playerSprite}`}
                         alt={charName}
-                        className="rounded-lg"
+                        draggable={false}
+                        className="rounded-lg sprite"
                         style={{
                             width: '200px',
                             height: '200px',
@@ -569,6 +741,17 @@ const Game = () => {
                             style={{ top: '10px', left: '50%', transform: 'translateX(-50%)', color: showPlayerDmg.color }}
                         >
                             {showPlayerDmg.value}
+                        </div>
+                    )}
+
+                    {/* Floating action text (DODGED!, HEALED!, ESCAPED!, etc.) */}
+                    {showActionText && (
+                        <div
+                            key={`act-${currentTurn}-${Date.now()}`}
+                            className="battle-action-text"
+                            style={{ top: '-15px', left: '50%', transform: 'translateX(-50%)', color: showActionText.color }}
+                        >
+                            {showActionText.text}
                         </div>
                     )}
                 </div>
@@ -705,7 +888,11 @@ const Game = () => {
                 ))}
             </div>
 
+            {/* ── SOUNDTRACK PLAYER ── */}
+            <SoundtrackPlayer genre={genre} />
+
         </GenreContainer>
+
     );
 };
 

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
+
 
 // ─── Constellation Background ─────────────────────────────────────────────────
 function ConstellationBackground() {
@@ -98,7 +99,10 @@ function ConstellationBackground() {
   );
 }
 
-export default function Register({ auth }) {
+export default function Register({ auth, captcha_img, status, isBlocked }) {
+
+
+
     const [passwordStrength, setPasswordStrength] = useState(0);
     const [passwordCriteria, setPasswordCriteria] = useState({
         length: false,
@@ -108,13 +112,23 @@ export default function Register({ auth }) {
         special: false,
     });
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [captchaSrc, setCaptchaSrc] = useState(captcha_img);
+
+    useEffect(() => {
+        setCaptchaSrc(captcha_img);
+    }, [captcha_img]);
+
+
+
     
     const { data, setData, post, processing, errors, reset } = useForm({
         username: '',
         email: '',
         password: '',
         password_confirmation: '',
+        captcha: '',
     });
+
 
     // Password strength checker
     const checkPasswordStrength = (password) => {
@@ -163,6 +177,13 @@ export default function Register({ auth }) {
         setData('password', password);
         checkPasswordStrength(password);
     };
+
+    const refreshCaptcha = () => {
+        router.reload({ only: ['captcha_img'] });
+    };
+
+
+
 
     const submit = (e) => {
         e.preventDefault();
@@ -242,7 +263,19 @@ export default function Register({ auth }) {
                                         </p>
                                     </div>
 
+                                    {status && (
+                                        <div className={`mb-4 md:mb-6 p-3 md:p-4 rounded-lg text-sm border ${
+                                            isBlocked 
+                                                ? 'bg-red-500/20 border-red-500/50 text-red-400' 
+                                                : 'bg-accent-emerald-green/20 border-accent-emerald-green/50 text-accent-emerald-green'
+                                        }`}>
+                                            <i className={`fas ${isBlocked ? 'fa-lock' : 'fa-info-circle'} mr-2`}></i>
+                                            {status}
+                                        </div>
+                                    )}
+
                                     <form onSubmit={submit}>
+
                                         <div className="mb-4 md:mb-6">
                                             <label className="block text-sm font-medium text-text-primary-off-white mb-2">
                                                 Username
@@ -251,9 +284,10 @@ export default function Register({ auth }) {
                                                 type="text"
                                                 value={data.username}
                                                 onChange={(e) => setData('username', e.target.value)}
-                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300"
+                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 placeholder="Enter your username"
                                                 required
+                                                disabled={isBlocked}
                                             />
                                             {errors.username && (
                                                 <div className="mt-2 text-sm text-red-400">{errors.username}</div>
@@ -268,10 +302,11 @@ export default function Register({ auth }) {
                                                 type="email"
                                                 value={data.email}
                                                 onChange={(e) => setData('email', e.target.value)}
-                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300"
+                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 placeholder="Enter your email"
                                                 autoComplete="username"
                                                 required
+                                                disabled={isBlocked}
                                             />
                                             {errors.email && (
                                                 <div className="mt-2 text-sm text-red-400">{errors.email}</div>
@@ -286,10 +321,11 @@ export default function Register({ auth }) {
                                                 type="password"
                                                 value={data.password}
                                                 onChange={handlePasswordChange}
-                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300"
+                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 placeholder="Enter your password"
                                                 autoComplete="new-password"
                                                 required
+                                                disabled={isBlocked}
                                             />
                                             {errors.password && (
                                                 <div className="mt-2 text-sm text-red-400">{errors.password}</div>
@@ -348,29 +384,80 @@ export default function Register({ auth }) {
                                                 type="password"
                                                 value={data.password_confirmation}
                                                 onChange={(e) => setData('password_confirmation', e.target.value)}
-                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300"
+                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 placeholder="Confirm your password"
                                                 autoComplete="new-password"
                                                 required
+                                                disabled={isBlocked}
                                             />
                                             {errors.password_confirmation && (
                                                 <div className="mt-2 text-sm text-red-400">{errors.password_confirmation}</div>
                                             )}
                                         </div>
 
+                                        {!isBlocked && (
+                                            <div className="mb-6 md:mb-8">
+                                                <label className="block text-sm font-medium text-text-primary-off-white mb-2 flex items-center justify-between">
+                                                    <span>Security Check</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="bg-white rounded p-1">
+                                                            <img 
+                                                                src={captchaSrc} 
+                                                                alt="captcha" 
+                                                                className="h-8 w-auto rounded"
+                                                            />
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={refreshCaptcha}
+                                                            className="p-2 text-accent-emerald-green hover:text-accent-hover-lighter-green transition-colors"
+                                                            title="Refresh Captcha"
+                                                        >
+                                                            <i className="fas fa-sync-alt text-xs"></i>
+                                                        </button>
+                                                    </div>
+                                                </label>
+                                                <div className="relative">
+                                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-text-muted-cool-gray">
+                                                        <i className="fas fa-robot text-xs"></i>
+                                                    </div>
+                                                    <input
+                                                        type="text"
+                                                        value={data.captcha}
+                                                        onChange={(e) => setData('captcha', e.target.value)}
+                                                        className="w-full pl-10 pr-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300"
+                                                        placeholder="Enter the result"
+                                                        required
+                                                    />
+                                                </div>
+                                                {errors.captcha && (
+                                                    <div className="mt-2 text-sm text-red-400">{errors.captcha}</div>
+                                                )}
+                                            </div>
+                                        )}
+
+
+
                                         <button
                                             type="submit"
-                                            disabled={processing || !isPasswordStrongEnough}
+                                            disabled={processing || !isPasswordStrongEnough || isBlocked}
                                             className={`w-full py-3 md:py-4 font-semibold rounded-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
-                                                !isPasswordStrongEnough && data.password
-                                                    ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                                                    : 'bg-gradient-to-r from-accent-emerald-green to-accent-hover-lighter-green text-white hover:shadow-lg hover:shadow-accent-emerald-green/30'
+                                                isBlocked
+                                                    ? 'bg-red-600 text-white cursor-not-allowed'
+                                                    : !isPasswordStrongEnough && data.password
+                                                        ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                                                        : 'bg-gradient-to-r from-accent-emerald-green to-accent-hover-lighter-green text-white hover:shadow-lg hover:shadow-accent-emerald-green/30'
                                             }`}
                                         >
                                             {processing ? (
                                                 <span className="flex items-center justify-center">
                                                     <i className="fas fa-spinner fa-spin mr-2"></i>
                                                     Creating account...
+                                                </span>
+                                            ) : isBlocked ? (
+                                                <span className="flex items-center justify-center">
+                                                    <i className="fas fa-lock mr-2"></i>
+                                                    Access Restricted
                                                 </span>
                                             ) : (
                                                 <span className="flex items-center justify-center">

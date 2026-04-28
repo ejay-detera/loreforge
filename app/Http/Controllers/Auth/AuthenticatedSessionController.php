@@ -8,15 +8,17 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\RateLimiter;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class AuthenticatedSessionController extends Controller
+
 {
     /**
      * Display the login view.
      */
-    public function create(): Response
+    public function create(Request $request): Response|RedirectResponse
     {
         // If user is already authenticated, check if they need MFA verification
         if (Auth::check()) {
@@ -39,10 +41,21 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('dashboard');
         }
         
+        // Check if IP is blocked
+        if (RateLimiter::tooManyAttempts('strict-auth:'.$request->ip(), 3)) {
+            $seconds = RateLimiter::availableIn('strict-auth:'.$request->ip());
+            return Inertia::render('Auth/Login', [
+                'canResetPassword' => Route::has('password.request'),
+                'status' => "Access restricted. Too many failed attempts. Try again in " . ceil($seconds / 60) . " minutes.",
+                'isBlocked' => true,
+            ]);
+        }
+
         return Inertia::render('Auth/Login', [
             'canResetPassword' => Route::has('password.request'),
             'status' => session('status'),
         ]);
+
     }
 
     /**

@@ -37,7 +37,7 @@ const useGame = () => {
             setMaxTurns(s.max_turns);
             setIsGameOver(s.status !== 'active');
             setIsVictory(s.status === 'victory');
-            if (s.inventoryItems) setInventory(s.inventoryItems);
+            if (s.inventory_items || s.inventoryItems) setInventory(s.inventory_items || s.inventoryItems);
         }
     }, [props.initialSession]);
 
@@ -64,7 +64,11 @@ const useGame = () => {
 
             if (!response.ok) {
                 batchGenerated.current = false; // Allow retry on failure
-                if (response.status === 419) throw new Error('Session expired. Please refresh.');
+                if (response.status === 419) {
+                    setError('Session expired. Refreshing...');
+                    setTimeout(() => window.location.reload(), 2000);
+                    return;
+                }
                 throw new Error(await response.text());
             }
 
@@ -135,7 +139,11 @@ const useGame = () => {
             );
 
             if (!response.ok) {
-                if (response.status === 419) throw new Error('Session expired.');
+                if (response.status === 419) {
+                    setError('Session expired. Refreshing...');
+                    setTimeout(() => window.location.reload(), 2000);
+                    return;
+                }
                 const text = await response.text();
                 console.error('resolveTurn HTTP error:', response.status, text);
                 throw new Error(text);
@@ -208,7 +216,7 @@ const useGame = () => {
                 setMaxTurns(s.max_turns);
                 setIsGameOver(false);
                 setIsVictory(false);
-                setInventory(s.inventoryItems || []);
+                setInventory(s.inventory_items || s.inventoryItems || []);
                 setCurrentBatch([]);
                 setCurrentTurnIndex(0);
                 router.visit('/game');

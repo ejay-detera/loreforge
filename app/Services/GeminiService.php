@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use App\Models\GameSession;
+use App\Models\InventoryItem;
 
 class GeminiService
 {
@@ -75,28 +76,41 @@ class GeminiService
     }
 
     /**
+     * Seed starter inventory items for a new game session.
+     * Called once when a session is first created.
+     */
+    public function giveStarterItems(GameSession $session): void
+    {
+        $starterItems = [
+            ['item_name' => 'Healing Potion', 'description' => 'Restores +25 HP when used.'],
+            ['item_name' => 'Healing Potion', 'description' => 'Restores +25 HP when used.'],
+            ['item_name' => 'Mana Potion',    'description' => 'Restores +20 MP when used.'],
+            ['item_name' => 'Mana Potion',    'description' => 'Restores +20 MP when used.'],
+        ];
+
+        foreach ($starterItems as $item) {
+            InventoryItem::create([
+                'session_id'  => $session->id,
+                'item_name'   => $item['item_name'],
+                'description' => $item['description'],
+                'acquired_at' => 0,
+                'removed_at'  => null,
+            ]);
+        }
+
+        Log::info('LoreForge: Starter items given', [
+            'session_id' => $session->id,
+            'items'      => array_column($starterItems, 'item_name'),
+        ]);
+    }
+
+    /**
      * Generate ALL remaining story turns in a single API call.
      * This is designed to be called ONCE per game session to minimize API usage.
      * Each turn includes branching outcomes so the player navigates client-side.
      */
     public function generateBatch(GameSession $session, string $playerChoice, array $inventory, int $batchSize = 20): array
     {
-        // ── Check daily limit BEFORE making the API call ──────────────────────
-        // DISABLED: Daily limit check removed
-        /*
-        if ($this->isLimitReached()) {
-            Log::warning('LoreForge: Gemini daily limit reached', [
-                'session_id'     => $session->id,
-                'requests_today' => $this->getRequestsToday(),
-                'limit'          => self::DAILY_LIMIT,
-            ]);
-            throw new \Exception(
-                'The story engine has reached its daily limit of ' . self::DAILY_LIMIT . ' requests. ' .
-                'Please come back tomorrow to continue your adventure!'
-            );
-        }
-        */
-
         $prompt = $this->buildGamePrompt($session, $playerChoice, $inventory, $batchSize);
 
         Log::info('LoreForge: generating story batch', [
@@ -196,6 +210,33 @@ class GeminiService
     }
 
     /**
+     * Get a structured enemy progression for the campaign.
+     * Returns weak → mid → boss enemy names for this genre.
+     */
+    protected function getEnemyProgression(string $genre): array
+    {
+        $progression = [
+            'fantasy' => [
+                'weak'  => ['Goblin Fire Thrower', 'Goblin Demolitionist'],
+                'mid'   => ['Skeleton Archer', 'Flaming Skull', 'Armored Skeleton Spearman', 'Armored Skeleton Swordsman'],
+                'boss'  => ['Skeleton King'],
+            ],
+            'horror' => [
+                'weak'  => ['Eldritch Minion'],
+                'mid'   => ['Eldritch Hunter', 'Eldritch Guardian'],
+                'boss'  => ['Eldritch Boss'],
+            ],
+            'scifi' => [
+                'weak'  => ['Robot Pawn'],
+                'mid'   => ['Robot Guardian'],
+                'boss'  => ['Robot Boss'],
+            ],
+        ];
+
+        return $progression[strtolower($genre)] ?? $progression['fantasy'];
+    }
+
+    /**
      * Build the Dungeon Master system prompt with full game state.
      */
     protected function buildGamePrompt(GameSession $session, string $playerChoice, array $inventory, int $batchSize): string
@@ -209,11 +250,41 @@ class GeminiService
         $currentMP     = $session->current_mana;
         $maxMP         = $session->max_mana;
         $turnsLeft     = $maxTurns - $currentTurn;
-        $inventoryList = !empty($inventory) ? implode(', ', $inventory) : 'none';
-        
-        // Get available enemies for this genre
+
+        // Build detailed inventory string with descriptions
+        $inventoryList = 'none';
+        if (!empty($inventory)) {
+            $itemCounts = array_count_values($inventory);
+            $itemParts = [];
+            foreach ($itemCounts as $name => $count) {
+                $itemParts[] = "{$name} x{$count}";
+            }
+            $inventoryList = implode(', ', $itemParts);
+        }
+
+        // Get available enemies & progression for this genre
         $availableEnemies = $this->getAvailableEnemies($session->genre);
         $enemyList = implode(', ', $availableEnemies);
+        $progression = $this->getEnemyProgression($session->genre);
+        $weakEnemies = implode(', ', $progression['weak']);
+        $midEnemies  = implode(', ', $progression['mid']);
+        $bossEnemies = implode(', ', $progression['boss']);
+
+        // Flee threshold: 10% of max HP
+        $fleeThreshold = (int) floor($maxHP * 0.10);
+
+        // MP threshold for magic abilities
+        $mpThreshold = 10;
+
+        // Determine which choices are available based on MP
+        $mpLine = $currentMP >= $mpThreshold
+            ? "The player has enough MP ({$currentMP}) for magic/special attacks. You may include magic attack choices that cost -5 to -15 MP."
+            : "WARNING: The player's MP is LOW ({$currentMP}/{$maxMP}). Do NOT offer any magic or special attack choices. Only offer: basic melee attacks (mana_change: 0), utility actions (dodge, scan — mana_change: 0), or inventory item usage.";
+
+        // Determine if flee is available
+        $fleeLine = $currentHP <= $fleeThreshold
+            ? "The player's HP is critically low ({$currentHP}/{$maxHP}, at or below {$fleeThreshold}). You MAY include a 'Flee' choice as one of the options."
+            : "The player's HP ({$currentHP}/{$maxHP}) is above the flee threshold ({$fleeThreshold}). Do NOT include any 'Flee' choice.";
 
         // Tone and player role varies per genre
         $toneLine = match(strtolower($session->genre)) {
@@ -227,6 +298,10 @@ class GeminiService
         $endingLine = $turnsLeft <= 3
             ? "IMPORTANT: The story is nearing its end ({$turnsLeft} turns remaining). Begin building toward a meaningful conclusion."
             : "The story has {$turnsLeft} turns remaining. Keep the narrative engaging and escalating.";
+
+        // Calculate enemy arc turn ranges
+        $weakEnd = (int) floor($maxTurns * 0.35);     // ~7 for 20 turns
+        $midEnd  = (int) floor($maxTurns * 0.70);      // ~14 for 20 turns
 
         $prompt = <<<PROMPT
 You are an expert Dungeon Master running a {$genre} interactive story game.
@@ -243,40 +318,96 @@ GAME STATE:
 TONE: {$toneLine}
 {$endingLine}
 
-ENEMY RULES (CAMPAIGN STRUCTURE):
+═══════════════════════════════════════════════
+ENEMY RULES (STRICTLY ENFORCED)
+═══════════════════════════════════════════════
+- There is ALWAYS exactly ONE enemy on the battlefield at a time. NEVER describe 2 or more enemies fighting the player simultaneously.
 - ONLY use exact enemy names from this list: {$enemyList}
-- NEVER invent enemy names.
-- CYCLE ENEMIES: This is a full campaign. Start with weak enemies (e.g., Grunts/Minions), and progress to harder ones. 
-- When an enemy is narratively defeated, introduce a DIFFERENT enemy from the list in the next turn.
-- FINAL BOSS: The final turns MUST feature the Boss from the list (Skeleton King, Eldritch Boss, Robot Boss).
+- NEVER invent new enemy names outside this list.
+- CAMPAIGN PROGRESSION — The player must face 2 to 3 DISTINCT enemies across the full campaign:
+  * Turns 1 to {$weakEnd}: Use a WEAK enemy from: {$weakEnemies}
+  * Turns {$weakEnd} to {$midEnd}: Use a MID-TIER enemy from: {$midEnemies}
+  * Turns {$midEnd} to {$maxTurns}: Use the FINAL BOSS from: {$bossEnemies}
+- When an enemy is defeated narratively, introduce the NEXT tier enemy in the following turn.
+- Each arc MUST use a DIFFERENT enemy name so the frontend can display different sprites.
 
-INVENTORY RULES:
+═══════════════════════════════════════════════
+MANA (MP) RULES (STRICTLY ENFORCED)
+═══════════════════════════════════════════════
+{$mpLine}
+- Magic/special attacks MUST cost mana: set mana_change to -5 to -15. Set action_type to "magic".
+- CRITICAL: If a magic attack costs X mana, and the player's current MP ({$currentMP}) is less than X, you MUST NOT offer that attack. Never offer an attack whose mana cost exceeds the player's current MP.
+- Basic melee attacks cost NO mana: set mana_change to 0. Set action_type to "attack".
+- Utility actions (dodge, scan) cost NO mana: set mana_change to 0. Set action_type to "utility".
+- Inventory item usage costs NO mana: set mana_change to 0. Set action_type to "item".
+
+═══════════════════════════════════════════════
+INVENTORY & ITEM RULES (STRICTLY ENFORCED)
+═══════════════════════════════════════════════
 - The player currently has: {$inventoryList}
-- You MUST sporadically give the player new items using `items_added` (e.g., ["Holy Sword", "Healing Potion"]). Always give them highly relevant items!
-- If the player has items, AT LEAST ONE choice per turn MUST utilize an item.
-- When an item is utilized, YOU MUST remove it in that choice's outcome by adding it to `items_removed` (e.g., ["Healing Potion"]).
-- Inventory matters: A player with a weapon should have better offensive choices!
+- ITEM EFFECTS — you MUST apply these EXACT stat changes when an item is used:
+  * "Healing Potion": set health_change to +25, set action_type to "item", set action_result to "success"
+  * "Mana Potion": set mana_change to +20, set action_type to "item", set action_result to "success"
+- When an item is used, you MUST add it to items_removed.
+- The ONLY items that can be given via items_added are: "Healing Potion" and "Mana Potion". NEVER add weapons, equipment, or any other item type.
+- You SHOULD sporadically give the player new potions using items_added (e.g., ["Healing Potion"], ["Mana Potion"]). This keeps the game balanced.
+- If the player has items, AT LEAST ONE choice per turn MUST be an item-usage option.
+- HP can NEVER exceed {$maxHP}. MP can NEVER exceed {$maxMP}. Clamp healing values accordingly.
 
-DIFFICULTY & STAT RULES:
+═══════════════════════════════════════════════
+DODGE / FLEE / UTILITY RULES (STRICTLY ENFORCED)
+═══════════════════════════════════════════════
+DODGE:
+- If the player chooses to dodge and it SUCCEEDS: health_change MUST be 0, enemy_hp_change MUST be 0, action_type = "utility", action_result = "success". Story should say the player evaded the attack.
+- If the player chooses to dodge and it FAILS: apply normal damage to player, action_type = "utility", action_result = "fail". Story should say the dodge failed.
+
+FLEE:
+{$fleeLine}
+- If flee SUCCEEDS: health_change = 0, enemy_hp_change = 0, action_type = "flee", action_result = "success". Story should say the player escaped.
+- If flee FAILS: apply heavy damage to player (-20 to -30), action_type = "flee", action_result = "fail". Story should say the escape attempt failed.
+
+SCAN / OTHER UTILITY:
+- Scan reveals enemy weakness. action_type = "utility", action_result = "success". No damage dealt or taken.
+
+═══════════════════════════════════════════════
+DIFFICULTY & STAT RULES
+═══════════════════════════════════════════════
 - Make the game HARD. The player SHOULD feel in danger of dying.
 - BAD choices MUST deal severe Health damage (-20 to -45).
 - GOOD/Neutral choices should deal minor damage (-5 to -15) or no damage.
-- Using a Healing item must heal Health (+20 to +40).
 - Enemy HP changes: -20 to -60 for good attacks.
 - Bosses must be hard to kill (require multiple turns of good choices).
 - ON THE FINAL TURN ({$maxTurns}), the successful choices MUST deal massive enemy damage (-120) to officially kill the final boss and achieve a true VICTORY.
 
-YOUR TASK:
-Generate the next {$batchSize} story turns as a single JSON response.
-Each turn has branching outcomes (one per choice) so the player navigates entirely client-side.
+═══════════════════════════════════════════════
+STORY PACING (MUST FOLLOW)
+═══════════════════════════════════════════════
+You MUST generate EXACTLY {$batchSize} turns. The story MUST reach a definitive ending on the FINAL turn ({$maxTurns}).
+- Turns 1-5: Introduce setting, first weak enemy encounter.
+- Turns 6-{$weakEnd}: Escalate conflict, find items, defeat weak enemy.
+- Turns {$weakEnd}-{$midEnd}: Mid-tier enemy appears, higher tension.
+- Turns {$midEnd}-{$maxTurns}: Final Boss battle. Turn {$maxTurns} MUST have the definitive killing blow option.
 
-Because this is a chunk of the adventure, you MUST advance the narrative appropriately for the current Turn:
-- Turn 1-5: Introduce setting, first weak enemy.
-- Turn 6-13: Escalate conflict, find powerful items, cycle to stronger enemies.
-- Turn 14-{$maxTurns}: The climax against the Final Boss. Turn {$maxTurns} must contain the definitive killing blow.
+═══════════════════════════════════════════════
+ACTION TYPE & RESULT (REQUIRED IN EVERY OUTCOME)
+═══════════════════════════════════════════════
+Every outcome object MUST include:
+- "action_type": one of "attack", "magic", "defend", "heal", "utility", "flee", "item"
+- "action_result": one of "success", "fail", "neutral"
 
-STRICT FORMATTING RULES:
-1. Story must consistent and escalate.
+These tell the frontend which visual effect to play:
+- attack/magic + success = slash effect on enemy
+- item (heal) + success = green heal glow on player
+- item (mana) + success = blue mana glow on player
+- utility (dodge) + success = dodge sidestep animation
+- utility (dodge) + fail = player gets hit
+- flee + success = player escapes
+- flee + fail = player gets hit hard
+
+═══════════════════════════════════════════════
+STRICT FORMATTING RULES
+═══════════════════════════════════════════════
+1. Story must be consistent and escalate.
 2. Each turn: exactly 2 to 4 choices.
 3. Keep story_text CONCISE: 2-3 sentences max.
 4. Keep outcome story text to 1 sentence.
@@ -293,23 +424,47 @@ REQUIRED JSON FORMAT:
       "turn_number": {$currentTurn},
       "enemy_name": "Goblin Fire Thrower",
       "story_text": "Concise narrative, 2-3 sentences.",
-      "choices": ["Choice A", "Choice B", "Choice C"],
+      "choices": ["Slash Attack", "Use Healing Potion", "Dodge Roll", "Fireball"],
       "outcomes": {
-        "Choice A": {
+        "Slash Attack": {
           "story": "One sentence outcome.",
-          "health_change": 0,
-          "mana_change": -5,
-          "enemy_hp_change": -20,
+          "health_change": -10,
+          "mana_change": 0,
+          "enemy_hp_change": -30,
           "items_added": [],
-          "items_removed": []
+          "items_removed": [],
+          "action_type": "attack",
+          "action_result": "success"
         },
-        "Choice B": {
-          "story": "One sentence outcome.",
-          "health_change": -15,
+        "Use Healing Potion": {
+          "story": "You drink the potion and feel vitality surge through you.",
+          "health_change": 25,
           "mana_change": 0,
           "enemy_hp_change": 0,
-          "items_added": ["Health Potion"],
-          "items_removed": []
+          "items_added": [],
+          "items_removed": ["Healing Potion"],
+          "action_type": "item",
+          "action_result": "success"
+        },
+        "Dodge Roll": {
+          "story": "You narrowly sidestep the enemy's strike.",
+          "health_change": 0,
+          "mana_change": 0,
+          "enemy_hp_change": 0,
+          "items_added": [],
+          "items_removed": [],
+          "action_type": "utility",
+          "action_result": "success"
+        },
+        "Fireball": {
+          "story": "A blazing fireball engulfs the enemy.",
+          "health_change": 0,
+          "mana_change": -10,
+          "enemy_hp_change": -45,
+          "items_added": [],
+          "items_removed": [],
+          "action_type": "magic",
+          "action_result": "success"
         }
       }
     }
@@ -370,8 +525,8 @@ PROMPT;
             throw new \Exception('Story generation returned an incomplete batch. Please try again.');
         }
 
-        // Validate each turn in the batch
-        foreach ($data['batch'] as $index => $turn) {
+        // Validate each turn in the batch and apply defaults for new fields
+        foreach ($data['batch'] as $index => &$turn) {
             $required = ['turn_number', 'enemy_name', 'story_text', 'choices', 'outcomes'];
             foreach ($required as $field) {
                 if (!isset($turn[$field])) {
@@ -382,7 +537,27 @@ PROMPT;
             if (empty($turn['choices']) || count($turn['choices']) < 2 || count($turn['choices']) > 4) {
                 throw new \Exception("Turn {$index} must have 2 to 4 choices. Please try again.");
             }
+
+            // Apply defaults for action_type and action_result on each outcome
+            if (is_array($turn['outcomes'])) {
+                foreach ($turn['outcomes'] as $choiceKey => &$outcome) {
+                    if (!isset($outcome['action_type'])) {
+                        $outcome['action_type'] = 'attack';
+                    }
+                    if (!isset($outcome['action_result'])) {
+                        $outcome['action_result'] = 'neutral';
+                    }
+                    if (!isset($outcome['items_added'])) {
+                        $outcome['items_added'] = [];
+                    }
+                    if (!isset($outcome['items_removed'])) {
+                        $outcome['items_removed'] = [];
+                    }
+                }
+                unset($outcome);
+            }
         }
+        unset($turn);
 
         Log::info('LoreForge: batch parsed successfully', [
             'turns_in_batch' => count($data['batch']),

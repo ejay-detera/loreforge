@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, usePage } from '@inertiajs/react';
 import PageTransition from '@/Components/PageTransition';
+import SessionHeartbeat from '@/Components/SessionHeartbeat';
 
 // ─── Constellation Background (unchanged) ────────────────────────────────────
 function ConstellationBackground() {
@@ -469,15 +470,6 @@ export default function AuthenticatedLayout({ header, children }) {
   // Check if we're on the game page
   const isGamePage = currentPath?.includes('/game');
 
-  // Load SessionTracker only when user is authenticated
-  useEffect(() => {
-    if (user) {
-      import('../Utils/SessionTracker').then(() => {
-        // SessionTracker will auto-initialize
-      });
-    }
-  }, [user]);
-
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     window.addEventListener('scroll', onScroll);
@@ -498,6 +490,7 @@ export default function AuthenticatedLayout({ header, children }) {
       `}</style>
 
       <div className={`bg-bg-deep-navy text-text-primary-off-white ${isGamePage ? 'h-screen overflow-hidden' : 'min-h-screen'}`} style={{ fontFamily: 'Poppins, sans-serif' }}>
+        <SessionHeartbeat />
 
         {/* ── Top Nav ── */}
         <nav

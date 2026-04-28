@@ -20,8 +20,17 @@ class InventoryItem extends Model
         'removed_at' => 'integer',
     ];
 
+    /**
+     * Scope: only items that have not been removed.
+     */
+    public function scopeActive($query)
+    {
+        return $query->whereNull('removed_at');
+    }
+
     public function gameSession(): BelongsTo
     {
         return $this->belongsTo(GameSession::class, 'session_id');
     }
 }
+

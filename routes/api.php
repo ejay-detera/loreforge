@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\GameSessionController;
+use App\Http\Controllers\Api\CommunityController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,8 +15,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['web'])
-    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+Route::middleware(['web', 'auth', 'session.timeout'])
     ->prefix('game')
     ->group(function () {
     
@@ -31,4 +31,15 @@ Route::middleware(['web'])
     // Get full session details for history timeline
     Route::get('/history/{sessionId}/details', [GameSessionController::class, 'getSessionDetails']);
     
+    // Share / Unshare
+    Route::post('/{sessionId}/share', [GameSessionController::class, 'share']);
+    Route::delete('/{sessionId}/share', [GameSessionController::class, 'unshare']);
+});
+
+Route::middleware(['web', 'auth', 'session.timeout'])
+    ->prefix('community')
+    ->group(function () {
+    Route::get('/', [CommunityController::class, 'index']);
+    Route::get('/{campaignId}', [CommunityController::class, 'show']);
+    Route::post('/{campaignId}/replay', [CommunityController::class, 'replay']);
 });

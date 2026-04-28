@@ -27,7 +27,12 @@ export default function History({ games = [] }) {
     };
 
     const getResultColor = (result) => {
-        return result === 'Victory' ? 'text-green-400 bg-green-400/20' : 'text-red-400 bg-red-400/20';
+        const r = (result ?? '').toLowerCase();
+        if (r === 'victory') return 'text-green-400 bg-green-400/20';
+        if (r === 'defeat' || r === 'defeated') return 'text-red-400 bg-red-400/20';
+        if (r === 'abandoned') return 'text-gray-400 bg-gray-400/20';
+        // Active / in-progress
+        return 'text-amber-400 bg-amber-400/20';
     };
 
     return (
@@ -97,7 +102,7 @@ export default function History({ games = [] }) {
                                             {game.genre}
                                         </span>
                                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getResultColor(game.result)}`}>
-                                            {game.result}
+                                            {game.result ? game.result.toUpperCase() : 'IN PROGRESS'}
                                         </span>
                                     </div>
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">

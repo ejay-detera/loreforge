@@ -6,14 +6,14 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faShieldAlt, faRocket, faEye } from '@fortawesome/free-solid-svg-icons';
 // ─── Constants ────────────────────────────────────────────────────────────────
-const RUNES  = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛜ','ᛞ','ᛟ'];
+const RUNES = ['ᚠ', 'ᚢ', 'ᚦ', 'ᚨ', 'ᚱ', 'ᚲ', 'ᚷ', 'ᚹ', 'ᚺ', 'ᚾ', 'ᛁ', 'ᛃ', 'ᛇ', 'ᛈ', 'ᛉ', 'ᛊ', 'ᛏ', 'ᛒ', 'ᛖ', 'ᛗ', 'ᛚ', 'ᛜ', 'ᛞ', 'ᛟ'];
 const RUNE_COLORS = ['#f5c842', '#10b981', '#a78bfa'];
 
 // ─── Hero Rune Canvas ─────────────────────────────────────────────────────────
 function HeroRuneCanvas({ containerRef }) {
   const canvasRef = useRef(null);
   const particles = useRef([]);
-  const animRef   = useRef(null);
+  const animRef = useRef(null);
 
   const spawn = (x, y) => {
     const color = RUNE_COLORS[Math.floor(Math.random() * RUNE_COLORS.length)];
@@ -118,7 +118,7 @@ function CornerBrackets({ color = '#f5c842', opacity = 0.45 }) {
     <>
       {[
         { cls: 'top-2.5 left-2.5', d: 'M0 12 L0 0 L12 0' },
-        { cls: 'top-2.5 right-2.5',  t: 'scaleX(-1)',  d: 'M0 12 L0 0 L12 0' },
+        { cls: 'top-2.5 right-2.5', t: 'scaleX(-1)', d: 'M0 12 L0 0 L12 0' },
         { cls: 'bottom-2.5 left-2.5', t: 'scaleY(-1)', d: 'M0 12 L0 0 L12 0' },
         { cls: 'bottom-2.5 right-2.5', t: 'scale(-1)', d: 'M0 12 L0 0 L12 0' },
       ].map(({ cls, t, d }, i) => (
@@ -135,8 +135,8 @@ function CornerBrackets({ color = '#f5c842', opacity = 0.45 }) {
 // ─── Genre Pill ───────────────────────────────────────────────────────────────
 const GENRE_STYLES = {
   Fantasy: { bg: 'rgba(201,168,76,.12)', color: '#C9A84C', border: 'rgba(201,168,76,.25)', icon: 'fas fa-hat-wizard' },
-  'Sci-Fi': { bg: 'rgba(0,191,255,.10)',  color: '#00BFFF', border: 'rgba(0,191,255,.22)',  icon: 'fas fa-rocket'     },
-  Horror:  { bg: 'rgba(139,0,0,.15)',     color: '#e05555', border: 'rgba(220,50,50,.25)',  icon: 'fas fa-ghost'      },
+  'Sci-Fi': { bg: 'rgba(0,191,255,.10)', color: '#00BFFF', border: 'rgba(0,191,255,.22)', icon: 'fas fa-rocket' },
+  Horror: { bg: 'rgba(139,0,0,.15)', color: '#e05555', border: 'rgba(220,50,50,.25)', icon: 'fas fa-ghost' },
 };
 
 function GenrePill({ genre }) {
@@ -195,9 +195,9 @@ function StatCard({ icon, value, label, accent, glow, dim, gradFrom, gradTo, run
 // ─── Adventures Table Row ─────────────────────────────────────────────────────
 function AdventureRow({ character, genre, turns, maxTurns, outcome }) {
   const pct = Math.round((turns / maxTurns) * 100);
-  const OUTCOME_COLORS = { Victory: '#10b981', Defeat: '#e05555', Abandoned: '#8899aa' };
-  const OUTCOME_ICONS  = { Victory: 'fas fa-trophy', Defeat: 'fas fa-skull', Abandoned: 'fas fa-clock' };
-  const CHAR_COLORS    = { Fantasy: '#f5c842', 'Sci-Fi': '#00BFFF', Horror: '#e05555' };
+  const OUTCOME_COLORS = { Victory: '#10b981', Defeat: '#e05555', Abandoned: '#8899aa', Active: '#3b82f6' };
+  const OUTCOME_ICONS = { Victory: 'fas fa-trophy', Defeat: 'fas fa-skull', Abandoned: 'fas fa-clock', Active: 'fas fa-running' };
+  const CHAR_COLORS = { Fantasy: '#f5c842', 'Sci-Fi': '#00BFFF', Horror: '#e05555' };
   const trackColor = { Fantasy: 'linear-gradient(90deg,#f5c842,#d4920d)', 'Sci-Fi': 'linear-gradient(90deg,#3b9eff,#00BFFF)', Horror: 'linear-gradient(90deg,#e05555,#8B0000)' };
   const [hovered, setHovered] = useState(false);
 
@@ -228,7 +228,7 @@ function AdventureRow({ character, genre, turns, maxTurns, outcome }) {
 }
 
 // ─── Spotlight Card ───────────────────────────────────────────────────────────
-function SpotlightCard({ icon, name, author, genre, turns, outcome, accentColor, delay }) {
+function SpotlightCard({ icon, name, author, genre, turns, outcome, accentColor, preview, delay }) {
   const [hovered, setHovered] = useState(false);
   const { ref, visible } = useScrollReveal(0.1);
   const s = GENRE_STYLES[genre] ?? GENRE_STYLES.Fantasy;
@@ -254,7 +254,7 @@ function SpotlightCard({ icon, name, author, genre, turns, outcome, accentColor,
           <div className="flex items-start justify-between gap-3 mb-5">
             <div className="flex items-start gap-3">
               <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: `${s.bg}`, border: `1px solid ${s.border}` }}>
-                <FontAwesomeIcon icon={icon} style={{ color: accentColor }} />
+                <i className={icon} style={{ color: accentColor }} />
               </div>
               <div>
                 <div className="text-sm font-semibold mb-0.5" style={{ color: '#e8e6f0', lineHeight: 1.3 }}>{name}</div>
@@ -262,6 +262,12 @@ function SpotlightCard({ icon, name, author, genre, turns, outcome, accentColor,
               </div>
             </div>
           </div>
+
+          {preview && (
+            <div className="mb-5 text-[11px] leading-relaxed italic" style={{ color: '#8899aa', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              "{preview}"
+            </div>
+          )}
 
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2 flex-wrap">
@@ -294,16 +300,11 @@ export default function Dashboard({ auth, stats, recentSessions, spotlightCampai
 
   const firstName = auth?.user?.username?.split(' ')[0] || 'Adventurer';
 
-  // Debug: Log the actual status value
-  console.log('Dashboard Debug - lastSession:', lastSession);
-  console.log('Dashboard Debug - status:', lastSession?.status);
-  console.log('Dashboard Debug - status type:', typeof lastSession?.status);
-
   const statCards = [
-    { icon: 'fas fa-scroll',     value: stats?.total ?? 12,     label: 'Total Games Played', accent: '#10b981', glow: 'rgba(16,185,129,.25)',  dim: 'rgba(16,185,129,.14)',  gradFrom: '#10b981', gradTo: '#059669', rune: 'ᚷ' },
-    { icon: 'fas fa-trophy',     value: stats?.victories ?? 7, label: 'Victories',           accent: '#f5c842', glow: 'rgba(245,200,66,.25)',  dim: 'rgba(245,200,66,.14)',  gradFrom: '#f5c842', gradTo: '#d4920d', rune: 'ᛏ' },
-    { icon: 'fas fa-skull',      value: stats?.defeats ?? 5,   label: 'Defeats',             accent: '#e05555', glow: 'rgba(224,85,85,.25)',   dim: 'rgba(224,85,85,.14)',   gradFrom: '#e05555', gradTo: '#8B0000', rune: 'ᚦ' },
-    { icon: 'fas fa-hat-wizard', value: stats?.favGenre ?? 'Fantasy',  label: 'Favourite Genre',     accent: '#a78bfa', glow: 'rgba(167,139,250,.25)', dim: 'rgba(167,139,250,.14)', gradFrom: '#a78bfa', gradTo: '#7c3aed', rune: 'ᚠ' },
+    { icon: 'fas fa-scroll', value: stats?.total ?? 0, label: 'Total Games Played', accent: '#10b981', glow: 'rgba(16,185,129,.25)', dim: 'rgba(16,185,129,.14)', gradFrom: '#10b981', gradTo: '#059669', rune: 'ᚷ' },
+    { icon: 'fas fa-trophy', value: stats?.victories ?? 0, label: 'Victories', accent: '#f5c842', glow: 'rgba(245,200,66,.25)', dim: 'rgba(245,200,66,.14)', gradFrom: '#f5c842', gradTo: '#d4920d', rune: 'ᛏ' },
+    { icon: 'fas fa-skull', value: stats?.defeats ?? 0, label: 'Defeats', accent: '#e05555', glow: 'rgba(224,85,85,.25)', dim: 'rgba(224,85,85,.14)', gradFrom: '#e05555', gradTo: '#8B0000', rune: 'ᚦ' },
+    { icon: 'fas fa-hat-wizard', value: stats?.favGenre ?? 'None', label: 'Favourite Genre', accent: '#a78bfa', glow: 'rgba(167,139,250,.25)', dim: 'rgba(167,139,250,.14)', gradFrom: '#a78bfa', gradTo: '#7c3aed', rune: 'ᚠ' },
   ];
 
   return (
@@ -358,8 +359,8 @@ export default function Dashboard({ auth, stats, recentSessions, spotlightCampai
                     <div className="w-2 h-2 rounded-full" style={{ background: '#f5c842', animation: 'pulseGlow 2s ease-in-out infinite', flexShrink: 0 }} />
                     <span className="text-xs font-light" style={{ color: '#8899aa' }}>
                       Last adventure:{' '}
-                      <span className="font-medium" style={{ color: '#e8e6f0' }}>{lastSession?.genre ?? 'Fantasy'}</span>
-                      {' · '}Turn {lastSession?.turn ?? 1}
+                      <span className="font-medium" style={{ color: '#e8e6f0' }}>{lastSession?.genre ?? 'No Last Adventure Yet'}</span>
+                      {' · '}Turn {lastSession?.turn ?? 0}
                       {' · '}
                       <span style={{ color: (lastSession?.status ?? 'Abandoned') === 'Abandoned' ? '#e05555' : (lastSession?.status ?? 'Abandoned') === 'Victory' ? '#10b981' : '#8899aa' }}>{lastSession?.status ?? 'Abandoned'}</span>
                     </span>

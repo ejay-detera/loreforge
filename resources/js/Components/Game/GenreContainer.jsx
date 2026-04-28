@@ -1189,17 +1189,59 @@ export const GenrePlatform = ({ genre = 'fantasy', className = '', style = {} })
 
             {key === 'scifi' && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    {/* Holographic Hex Pad - Solid Base */}
-                    <div className="absolute inset-[-15%] opacity-90 animate-[hexFlicker_3s_ease_in_out_infinite]"
+                    {/* Hex grid disc surface */}
+                    <div className="absolute inset-[-15%] opacity-90"
                         style={{
-                            background: `radial-gradient(ellipse, ${theme.accentColor}55 0%, ${theme.accentColor}11 70%, transparent 90%)`,
-                            border: `3px solid ${theme.accentColor}`,
+                            background: `radial-gradient(ellipse, ${theme.accentColor}33 0%, ${theme.accentColor}08 70%, transparent 90%)`,
+                            border: `2px solid ${theme.accentColor}`,
                             borderRadius: '50%',
                             transform: 'rotateX(65deg)',
-                            boxShadow: `0 0 40px ${theme.accentColor}88, inset 0 0 25px ${theme.accentColor}55`,
+                            boxShadow: `0 0 50px ${theme.accentColor}55, 0 0 20px ${theme.accentColor}44 inset`,
+                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='24'%3E%3Cpolygon points='14,2 24,8 24,16 14,22 4,16 4,8' fill='none' stroke='%2300e5ff' stroke-width='0.4' opacity='0.35'/%3E%3C/svg%3E")`,
+                            backgroundBlendMode: 'screen',
                         }} />
-                    <div className="absolute inset-6 border-2 border-cyan-400/60 rounded-full"
+
+                    {/* Inner rim ring */}
+                    <div className="absolute inset-6 border border-cyan-400/40 rounded-full"
                         style={{ transform: 'rotateX(65deg)' }} />
+
+                    {/* Pulsing core glow */}
+                    <div className="absolute rounded-full animate-pulse"
+                        style={{
+                            width: '30%', height: '12%',
+                            background: `radial-gradient(ellipse, ${theme.accentColor}99 0%, transparent 70%)`,
+                            transform: 'rotateX(65deg)',
+                            filter: 'blur(6px)',
+                        }} />
+
+                    {/* Rising particles */}
+                    {[0, 1, 2, 3].map(i => (
+                        <div key={i} className="absolute rounded-full"
+                            style={{
+                                width: i % 2 === 0 ? '6px' : '4px',
+                                height: i % 2 === 0 ? '6px' : '4px',
+                                background: theme.accentColor,
+                                left: `${42 + i * 5}%`,
+                                bottom: '48%',
+                                opacity: 0,
+                                animation: `rise 2.4s ease-in infinite ${i * 0.6}s`,
+                                boxShadow: `0 0 6px ${theme.accentColor}`,
+                            }} />
+                    ))}
+
+                    {/* HUD label */}
+                    <div className="absolute bottom-[28%] text-[9px] tracking-[4px] font-mono opacity-40"
+                        style={{ color: theme.accentColor }}>
+                        FIELD:STABLE
+                    </div>
+
+                    <style>{`
+                @keyframes rise {
+                    0%   { opacity: 0; transform: translateY(0); }
+                    20%  { opacity: 0.8; }
+                    100% { opacity: 0; transform: translateY(-70px); }
+                }
+                `}</style>
                 </div>
             )}
         </div>

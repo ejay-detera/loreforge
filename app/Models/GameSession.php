@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class GameSession extends Model
 {
     protected $fillable = [
-        'user_id',
         'genre',
         'character_name',
         'current_health',
@@ -18,8 +17,6 @@ class GameSession extends Model
         'max_mana',
         'turn_count',
         'max_turns',
-        'status',
-        'outcome',
         'is_public',
     ];
 

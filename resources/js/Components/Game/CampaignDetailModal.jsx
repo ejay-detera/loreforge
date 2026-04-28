@@ -2,30 +2,39 @@ import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-    faTimes, faHistory, faSkull, faTrophy, faUser,
+    faTimes, faSkull, faTrophy, faUser,
     faChevronRight, faClock, faHeart, faBolt, faScroll,
-    faRotateRight, faShareNodes, faLock, faSpinner
+    faRotateRight, faPlay, faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 import { getGenreTheme } from '@/Components/Game/GenreContainer';
 import { createPortal } from 'react-dom';
+import { router } from '@inertiajs/react';
 
-/* ─────────────────────────────────────────────
-   Portal wrapper — renders on top of everything
-   ───────────────────────────────────────────── */
-const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
+const CampaignDetailModal = ({ campaignId, isOpen, onClose }) => {
     const [loading, setLoading] = useState(true);
-    const [details, setDetails] = useState(null);
+    const [campaign, setCampaign] = useState(null);
     const [error, setError] = useState(null);
     const [activeTurn, setActiveTurn] = useState(0);
-    const [sharing, setSharing] = useState(false);
+    
+    // Replay state
+    const [showReplayForm, setShowReplayForm] = useState(false);
+    const [replayName, setReplayName] = useState('');
+    const [startingReplay, setStartingReplay] = useState(false);
+    
     const scrollRef = useRef(null);
 
     useEffect(() => {
-        if (isOpen && sessionId) fetchDetails();
-        if (!isOpen) { setDetails(null); setActiveTurn(0); }
-    }, [isOpen, sessionId]);
+        if (isOpen && campaignId) {
+            fetchCampaign();
+            setShowReplayForm(false);
+        }
+        if (!isOpen) { 
+            setCampaign(null); 
+            setActiveTurn(0); 
+            setShowReplayForm(false);
+        }
+    }, [isOpen, campaignId]);
 
-    // Lock body scroll while open
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
@@ -35,59 +44,56 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
         return () => { document.body.style.overflow = ''; };
     }, [isOpen]);
 
-    const fetchDetails = async () => {
+    const fetchCampaign = async () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await axios.get(`/api/game/history/${sessionId}/details`);
+            const response = await axios.get(`/api/community/${campaignId}`);
             if (response.data.success) {
-                setDetails(response.data.session);
+                setCampaign(response.data.campaign);
             } else {
-                setError('Failed to load session details.');
+                setError('Failed to load campaign details.');
             }
         } catch (err) {
-            console.error('Error fetching session details:', err);
+            console.error('Error fetching campaign details:', err);
             setError('An error occurred while fetching details.');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleShareToggle = async () => {
-        if (!details || (!isVictory && !isDefeat)) return;
-        
-        setSharing(true);
+    const handleReplay = async (e) => {
+        e.preventDefault();
+        if (!campaign) return;
+
+        setStartingReplay(true);
         try {
-            if (details.is_public) {
-                const res = await axios.delete(`/api/game/${sessionId}/share`);
-                if (res.data.success) {
-                    setDetails({ ...details, is_public: false });
-                }
-            } else {
-                const res = await axios.post(`/api/game/${sessionId}/share`);
-                if (res.data.success) {
-                    setDetails({ ...details, is_public: true });
-                }
+            const response = await axios.post(`/api/community/${campaignId}/replay`, {
+                character_name: replayName
+            });
+
+            if (response.data.success) {
+                // Navigate to game screen
+                router.visit('/game');
             }
         } catch (err) {
-            console.error('Failed to toggle share:', err);
-            alert(err.response?.data?.message || 'Failed to update sharing status.');
-        } finally {
-            setSharing(false);
+            console.error('Failed to start replay:', err);
+            alert(err.response?.data?.message || 'Failed to start replay.');
+            setStartingReplay(false);
         }
     };
 
     if (!isOpen) return null;
 
-    const theme = details ? getGenreTheme(details.genre.toLowerCase()) : getGenreTheme('fantasy');
-    const accentHex = details ? theme.accentColor : '#60a5fa';
-    const isVictory = details?.outcome === 'victory';
-    const isDefeat = details?.outcome === 'defeat';
+    const theme = campaign ? getGenreTheme(campaign.genre.toLowerCase()) : getGenreTheme('fantasy');
+    const accentHex = campaign ? theme.accentColor : '#60a5fa';
+    const isVictory = campaign?.outcome === 'victory';
+    const isDefeat = campaign?.outcome === 'defeat';
     const outcomeColor = isVictory ? '#4ade80' : isDefeat ? '#f87171' : '#94a3b8';
     const outcomeIcon = isVictory ? faTrophy : isDefeat ? faSkull : faClock;
     const outcomeLabel = isVictory ? 'Victory Achieved' : isDefeat ? 'Journey Ended' : 'Adventure Abandoned';
 
-    const turns = details?.turns ?? [];
+    const turns = campaign?.turns ?? [];
     const currentTurn = turns[activeTurn];
 
     return createPortal(
@@ -96,35 +102,21 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
             aria-modal="true"
             role="dialog"
         >
-            {/* ── Minimal Animation Styles ── */}
             <style>{`
                 @keyframes co-fade { from { opacity:0 } to { opacity:1 } }
                 @keyframes co-up { from { transform: translateY(24px); opacity:0 } to { transform:none; opacity:1 } }
 
-                /* Custom Scrollbar */
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 4px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
                 .custom-scrollbar::-webkit-scrollbar-thumb {
                     background: var(--acc-20);
                     border-radius: 10px;
                     transition: background 0.2s;
                 }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: var(--acc-40);
-                }
-                
-                /* Selection styling */
-                ::selection {
-                    background: var(--acc-30);
-                    color: #fff;
-                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--acc-40); }
+                ::selection { background: var(--acc-30); color: #fff; }
             `}</style>
 
-            {/* CSS vars wrapper */}
             <div
                 className="flex flex-col w-full h-full max-w-[1200px] mx-auto p-2 sm:p-4 box-border animate-[co-up_0.3s_cubic-bezier(0.22,1,0.36,1)_both]"
                 style={{
@@ -144,10 +136,10 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
                                 <FontAwesomeIcon icon={faScroll} />
                             </div>
                             <div>
-                                <div className="text-[18px] font-black text-white tracking-wider leading-[1.1]">Campaign Chronicle</div>
-                                {details && (
+                                <div className="text-[18px] font-black text-white tracking-wider leading-[1.1]">Community Campaign</div>
+                                {campaign && (
                                     <div className="text-[10px] text-white/35 uppercase tracking-[0.15em] mt-0.5">
-                                        {details.character_name} · {details.genre} Adventure
+                                        {campaign.character_name} · {campaign.genre} Adventure · By {campaign.author}
                                     </div>
                                 )}
                             </div>
@@ -155,28 +147,28 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
                     </div>
 
                     {/* Stats bar */}
-                    {details && (
+                    {campaign && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 px-6 py-4 border-b border-white/10 shrink-0 bg-black/30">
                             <div className="bg-white/[0.03] border border-white/10 rounded-[10px] p-3 flex flex-col gap-1">
                                 <span className="text-[9px] uppercase tracking-[0.15em] text-white/30">Outcome</span>
                                 <span className="text-sm font-bold truncate" style={{ color: outcomeColor }}>
-                                    {(details.outcome || 'Abandoned').toUpperCase()}
+                                    {(campaign.outcome || 'Abandoned').toUpperCase()}
                                 </span>
                             </div>
                             <div className="bg-white/[0.03] border border-white/10 rounded-[10px] p-3 flex flex-col gap-1">
                                 <span className="text-[9px] uppercase tracking-[0.15em] text-white/30">Turns</span>
-                                <span className="text-sm font-bold text-white">{details.turn_count} / {details.max_turns}</span>
+                                <span className="text-sm font-bold text-white">{campaign.turn_count} / {campaign.max_turns}</span>
                             </div>
                             <div className="bg-white/[0.03] border border-white/10 rounded-[10px] p-3 flex flex-col gap-1">
                                 <span className="text-[9px] uppercase tracking-[0.15em] text-white/30">Health</span>
                                 <span className="text-sm font-bold text-[#4ade80]">
-                                    {details.current_health} HP
+                                    {campaign.current_health} HP
                                 </span>
                             </div>
                             <div className="bg-white/[0.03] border border-white/10 rounded-[10px] p-3 flex flex-col gap-1">
                                 <span className="text-[9px] uppercase tracking-[0.15em] text-white/30">Mana</span>
                                 <span className="text-sm font-bold text-[#60a5fa]">
-                                    {details.current_mana} MP
+                                    {campaign.current_mana} MP
                                 </span>
                             </div>
                         </div>
@@ -187,7 +179,7 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
                         {loading ? (
                             <div className="flex-1 flex flex-col items-center justify-center gap-4 text-white/40 text-[12px] uppercase tracking-[0.15em]">
                                 <div className="w-10 h-10 border-3 border-white/10 border-t-[var(--acc)] rounded-full animate-spin" />
-                                <span>Consulting the Archives…</span>
+                                <span>Loading Campaign…</span>
                             </div>
                         ) : error ? (
                             <div className="flex-1 flex flex-col items-center justify-center gap-4 text-white/40 text-[12px] uppercase tracking-[0.15em]">
@@ -195,14 +187,14 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
                                 <span className="text-red-400">{error}</span>
                                 <button
                                     className="px-5 py-2.5 rounded-[10px] text-[11px] uppercase tracking-[0.15em] bg-white/[0.06] border border-white/[0.12] text-white/70 hover:bg-white/[0.12] hover:text-white flex items-center gap-2"
-                                    onClick={fetchDetails}
+                                    onClick={fetchCampaign}
                                 >
                                     <FontAwesomeIcon icon={faRotateRight} /> Try Again
                                 </button>
                             </div>
                         ) : (
                             <>
-                                {/* Sidebar — turn list (hidden on small mobile) */}
+                                {/* Sidebar */}
                                 <div className="w-[220px] shrink-0 border-r border-white/10 overflow-y-auto px-2 py-3 hidden sm:flex flex-col gap-1 custom-scrollbar">
                                     {turns.length > 0 ? turns.map((turn, idx) => (
                                         <button
@@ -252,7 +244,6 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
                                                 </div>
                                             )}
 
-                                            {/* Outcome banner on last turn */}
                                             {activeTurn === turns.length - 1 && (
                                                 <div
                                                     className="rounded-2xl p-7 text-center flex flex-col items-center gap-2 animate-[co-fade_0.4s_ease_both_0.1s]"
@@ -267,7 +258,7 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
                                                     </div>
                                                     <div className="text-[22px] font-black tracking-[0.08em] text-white">{outcomeLabel}</div>
                                                     <div className="text-xs text-white/40">
-                                                        {details.character_name}'s legend concluded at turn {details.turn_count}.
+                                                        {campaign.character_name}'s legend concluded at turn {campaign.turn_count}.
                                                     </div>
                                                 </div>
                                             )}
@@ -301,35 +292,57 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
                         )}
                     </div>
 
-                    {/* Footer */}
-                    <div className="px-6 py-3.5 border-t border-white/10 flex justify-between items-center bg-black/30 shrink-0">
-                        <div>
-                            {details && (isVictory || isDefeat) && (
+                    {/* Footer / Replay Form */}
+                    {showReplayForm ? (
+                        <div className="px-6 py-3.5 border-t border-white/10 flex justify-between items-center bg-black/30 shrink-0">
+                            <form onSubmit={handleReplay} className="flex flex-1 items-center gap-3">
+                                <span className="text-[11px] font-bold text-white/60 uppercase tracking-widest hidden sm:block">Character Name:</span>
+                                <input
+                                    type="text"
+                                    value={replayName}
+                                    onChange={(e) => setReplayName(e.target.value)}
+                                    placeholder="Enter your hero's name"
+                                    className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-[var(--acc)] flex-1 max-w-[250px]"
+                                    autoFocus
+                                />
                                 <button
-                                    onClick={handleShareToggle}
-                                    disabled={sharing}
-                                    className={`px-[18px] py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] font-bold transition-all duration-200 flex items-center gap-2 ${
-                                        details.is_public
-                                            ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20'
-                                            : 'bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/20'
-                                    } border disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    type="submit"
+                                    disabled={startingReplay}
+                                    className="px-[22px] py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] font-bold transition-all duration-200 bg-[var(--acc-20)] border border-[var(--acc-40)] text-[var(--acc)] hover:bg-[var(--acc-30)] disabled:opacity-50 flex items-center gap-2"
                                 >
-                                    {sharing ? (
-                                        <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
-                                    ) : (
-                                        <FontAwesomeIcon icon={details.is_public ? faLock : faShareNodes} />
-                                    )}
-                                    {details.is_public ? 'Unshare Campaign' : 'Share to Community'}
+                                    {startingReplay ? <FontAwesomeIcon icon={faSpinner} className="animate-spin" /> : <FontAwesomeIcon icon={faPlay} />}
+                                    Start Replay
                                 </button>
-                            )}
+                                <button
+                                    type="button"
+                                    onClick={() => setShowReplayForm(false)}
+                                    className="px-4 py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] font-bold text-white/50 hover:text-white hover:bg-white/5 transition-all ml-auto"
+                                >
+                                    Cancel
+                                </button>
+                            </form>
                         </div>
-                        <button
-                            className="px-[22px] py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 bg-white/[0.06] border border-white/[0.12] text-white/70 hover:bg-white/[0.12] hover:text-white font-bold"
-                            onClick={onClose}
-                        >
-                            Close Chronicle
-                        </button>
-                    </div>
+                    ) : (
+                        <div className="px-6 py-3.5 border-t border-white/10 flex justify-between items-center bg-black/30 shrink-0">
+                            <div>
+                                {campaign && (
+                                    <button
+                                        onClick={() => setShowReplayForm(true)}
+                                        className="px-[18px] py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] font-bold transition-all duration-200 bg-[var(--acc-20)] border border-[var(--acc-40)] text-[var(--acc)] hover:bg-[var(--acc-30)] flex items-center gap-2"
+                                    >
+                                        <FontAwesomeIcon icon={faPlay} />
+                                        Replay Campaign
+                                    </button>
+                                )}
+                            </div>
+                            <button
+                                className="px-[22px] py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 bg-white/[0.06] border border-white/[0.12] text-white/70 hover:bg-white/[0.12] hover:text-white font-bold"
+                                onClick={onClose}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>,
@@ -337,4 +350,4 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
     );
 };
 
-export default HistoryDetailsModal;
+export default CampaignDetailModal;

@@ -43,6 +43,7 @@ class LoginRequest extends FormRequest
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
+            RateLimiter::hit('strict-auth:'.$this->ip(), 3600); // 1 hour lockout
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
@@ -50,6 +51,7 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+        RateLimiter::clear('strict-auth:'.$this->ip());
     }
 
     /**
@@ -59,6 +61,16 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
+        if (RateLimiter::tooManyAttempts('strict-auth:'.$this->ip(), 3)) {
+            event(new Lockout($this));
+
+            $seconds = RateLimiter::availableIn('strict-auth:'.$this->ip());
+
+            throw ValidationException::withMessages([
+                'email' => "Too many failed attempts. Your access is restricted for " . ceil($seconds / 60) . " minutes.",
+            ]);
+        }
+
         if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
             return;
         }
@@ -74,6 +86,7 @@ class LoginRequest extends FormRequest
             ]),
         ]);
     }
+
 
     /**
      * Get the rate limiting throttle key for the request.

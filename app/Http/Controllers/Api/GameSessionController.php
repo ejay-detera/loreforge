@@ -48,9 +48,8 @@ class GameSessionController extends Controller
                     ->where('status', 'active')
                     ->update(['status' => 'abandoned']);
 
-                // Create new game session
-                $session = GameSession::create([
-                    'user_id' => Auth::id(),
+                // Create new game session manually to handle non-fillable fields
+                $session = new GameSession([
                     'genre' => $validated['genre'],
                     'character_name' => $validated['character_name'],
                     'current_health' => 100,
@@ -59,10 +58,16 @@ class GameSessionController extends Controller
                     'max_mana' => 50,
                     'turn_count' => 0,
                     'max_turns' => $validated['max_turns'] ?? 20,
-                    'status' => 'active',
-                    'outcome' => null,
                     'is_public' => false,
                 ]);
+                
+                $session->user_id = Auth::id();
+                $session->status = 'active';
+                $session->outcome = null;
+                $session->save();
+
+                // Seed starter inventory items (2x Healing Potion, 2x Mana Potion)
+                $this->geminiService->giveStarterItems($session);
 
                 Log::info('LoreForge: New game session started', [
                     'session_id' => $session->id,
@@ -277,20 +282,32 @@ class GameSessionController extends Controller
 
                 $outcome = $turn->outcomes[$validated['choice']];
 
+                $healthChange = $outcome['health_change'] ?? 0;
+                $manaChange = $outcome['mana_change'] ?? 0;
+
+                // Force values if Gemini hallucinated 0
+                $choiceLower = strtolower($validated['choice']);
+                if (str_contains($choiceLower, 'healing potion') || str_contains($choiceLower, 'hp potion')) {
+                    $healthChange = max(25, $healthChange);
+                }
+                if (str_contains($choiceLower, 'mana potion') || str_contains($choiceLower, 'mp potion')) {
+                    $manaChange = max(20, $manaChange);
+                }
+
                 // Update turn with player's choice and outcome changes
                 $turn->update([
                     'player_choice' => $validated['choice'],
-                    'health_change' => $outcome['health_change'] ?? 0,
-                    'mana_change' => $outcome['mana_change'] ?? 0,
+                    'health_change' => $healthChange,
+                    'mana_change' => $manaChange,
                     'enemy_hp_change' => $outcome['enemy_hp_change'] ?? 0,
                     'is_resolved' => true,
                 ]);
 
                 // Apply health and mana changes to session with min/max caps
                 $newHealth = max(0, min($session->max_health, 
-                    $session->current_health + ($outcome['health_change'] ?? 0)));
+                    $session->current_health + $healthChange));
                 $newMana = max(0, min($session->max_mana, 
-                    $session->current_mana + ($outcome['mana_change'] ?? 0)));
+                    $session->current_mana + $manaChange));
 
                 $session->update([
                     'current_health' => $newHealth,
@@ -335,10 +352,9 @@ class GameSessionController extends Controller
                 $isVictory = $session->turn_count >= $session->max_turns;
 
                 if ($isGameOver || $isVictory) {
-                    $session->update([
-                        'status' => $isGameOver ? 'defeated' : 'victory',
-                        'outcome' => $isGameOver ? 'defeat' : 'victory',
-                    ]);
+                    $session->status = $isGameOver ? 'defeated' : 'victory';
+                    $session->outcome = $isGameOver ? 'defeat' : 'victory';
+                    $session->save();
 
                     Log::info('LoreForge: Game session ended', [
                         'session_id' => $session->id,
@@ -439,6 +455,88 @@ class GameSessionController extends Controller
                 'success' => false,
                 'message' => 'Game session not found.'
             ], 404);
+        }
+    }
+
+    /**
+     * Share a completed game session
+     */
+    public function share(Request $request, $sessionId)
+    {
+        if (!Auth::check()) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            return DB::transaction(function () use ($sessionId) {
+                $session = GameSession::where('id', $sessionId)
+                    ->where('user_id', Auth::id())
+                    ->firstOrFail();
+
+                if (!in_array($session->outcome, ['victory', 'defeat'])) {
+                    return response()->json(['success' => false, 'message' => 'Only completed games can be shared.'], 400);
+                }
+
+                if ($session->is_public) {
+                    return response()->json(['success' => false, 'message' => 'Session is already shared.'], 400);
+                }
+
+                // Generate story preview from first 2 resolved turns
+                $turns = $session->turns()->where('is_resolved', true)->orderBy('turn_number', 'asc')->take(2)->get();
+                $previewText = '';
+                foreach ($turns as $turn) {
+                    $previewText .= $turn->story_text . ' ';
+                }
+                
+                // Truncate to reasonable length
+                $previewText = mb_strimwidth(trim($previewText), 0, 250, '...');
+                if (empty($previewText)) {
+                    $previewText = 'A mysterious adventure...';
+                }
+
+                \App\Models\SharedCampaign::create([
+                    'session_id' => $session->id,
+                    'shared_by' => Auth::id(),
+                    'story_preview' => $previewText,
+                    'shared_at' => now(),
+                ]);
+
+                $session->update(['is_public' => true]);
+
+                return response()->json(['success' => true, 'message' => 'Campaign shared successfully!']);
+            });
+        } catch (\Exception $e) {
+            Log::error('Share error', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Failed to share campaign.'], 500);
+        }
+    }
+
+    /**
+     * Unshare a game session
+     */
+    public function unshare(Request $request, $sessionId)
+    {
+        if (!Auth::check()) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            return DB::transaction(function () use ($sessionId) {
+                $session = GameSession::where('id', $sessionId)
+                    ->where('user_id', Auth::id())
+                    ->firstOrFail();
+
+                if (!$session->is_public) {
+                    return response()->json(['success' => false, 'message' => 'Session is not shared.'], 400);
+                }
+
+                \App\Models\SharedCampaign::where('session_id', $session->id)->delete();
+                $session->update(['is_public' => false]);
+
+                return response()->json(['success' => true, 'message' => 'Campaign unshared successfully.']);
+            });
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to unshare campaign.'], 500);
         }
     }
 }
