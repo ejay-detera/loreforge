@@ -42,4 +42,12 @@ Route::middleware(['web', 'auth', 'session.timeout'])
     Route::get('/', [CommunityController::class, 'index']);
     Route::get('/{campaignId}', [CommunityController::class, 'show']);
     Route::post('/{campaignId}/replay', [CommunityController::class, 'replay']);
+
+    // Ratings
+    Route::post('/{campaignId}/rate', [CommunityController::class, 'rateOrUpdate']);
+
+    // Comments
+    Route::get('/{campaignId}/comments', [CommunityController::class, 'getComments']);
+    Route::post('/{campaignId}/comments', [CommunityController::class, 'addComment']);
+    Route::delete('/{campaignId}/comments/{commentId}', [CommunityController::class, 'deleteComment']);
 });

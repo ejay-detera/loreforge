@@ -90,22 +90,22 @@ export default function History({ games = [] }) {
                         <div
                             key={game.id}
                             onClick={() => openDetails(game.id)}
-                            className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-6 hover:border-accent-emerald-green/50 transition-all duration-300 cursor-pointer group"
+                            className="bg-surface-dark-charcoal/50 backdrop-blur-sm rounded-lg border border-border-subtle-dark/50 p-4 md:p-6 hover:border-accent-emerald-green/50 transition-all duration-300 cursor-pointer group"
                         >
                             <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                    <div className="flex items-center gap-4 mb-3">
-                                        <h3 className="text-lg font-semibold text-text-primary-off-white">
+                                    <div className="flex flex-wrap items-center gap-2 md:gap-4 mb-3">
+                                        <h3 className="text-base md:text-lg font-semibold text-text-primary-off-white">
                                             {game.name}
                                         </h3>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getGenreColor(game.genre)}`}>
+                                        <span className={`px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-xs font-medium ${getGenreColor(game.genre)}`}>
                                             {game.genre}
                                         </span>
-                                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getResultColor(game.result)}`}>
+                                        <span className={`px-2.5 py-0.5 md:px-3 md:py-1 rounded-full text-[10px] md:text-xs font-medium ${getResultColor(game.result)}`}>
                                             {game.result ? game.result.toUpperCase() : 'IN PROGRESS'}
                                         </span>
                                     </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs md:text-sm">
                                         <div>
                                             <span className="text-text-muted-cool-gray">Date</span>
                                             <div className="text-text-primary-off-white font-medium">{game.date}</div>

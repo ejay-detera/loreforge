@@ -206,7 +206,7 @@ export default function Register({ auth, captcha_img, status, isBlocked }) {
     return (
         <>
             <Head title="Register" />
-            <div className="font-sans antialiased bg-bg-deep-navy text-text-primary-off-white h-screen overflow-hidden relative">
+            <div className="font-sans antialiased bg-bg-deep-navy text-text-primary-off-white min-h-screen lg:h-screen overflow-y-auto lg:overflow-hidden relative">
                 <ConstellationBackground />
 
                 {/* Home Button */}
@@ -249,9 +249,9 @@ export default function Register({ auth, captcha_img, status, isBlocked }) {
                 </div>
 
                 {/* Main Container */}
-                <div className="relative z-10 w-full h-screen flex items-center justify-center px-4 sm:px-6 md:px-8 pt-16 pb-4">
+                <div className="relative z-10 w-full min-h-screen lg:h-screen flex items-center justify-center px-4 sm:px-6 md:px-8 pt-16 pb-4">
                 <div className="w-full max-w-6xl max-h-full">
-                    <div className="bg-surface-dark-charcoal/80 backdrop-blur-lg rounded-2xl overflow-hidden border border-border-subtle-dark/50 shadow-2xl max-h-full">
+                    <div className="bg-surface-dark-charcoal/80 backdrop-blur-lg rounded-2xl overflow-hidden border border-border-subtle-dark/50 shadow-2xl w-full max-h-none lg:max-h-full">
                         <div className="grid grid-cols-1 lg:grid-cols-2 min-h-0 lg:h-[calc(100vh-5rem)] lg:max-h-[680px]">
                             {/* Left Panel - Registration Form */}
                             <div className="p-4 sm:p-5 lg:p-6 flex flex-col justify-center">

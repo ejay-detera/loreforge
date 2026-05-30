@@ -82,7 +82,7 @@ const SoundtrackPlayer = ({ genre }) => {
 
     return (
         <div 
-            className="flex items-center justify-between px-6 py-3 border-t backdrop-blur-xl z-50 shrink-0"
+            className="flex items-center justify-between px-4 py-2 md:px-6 md:py-3 border-t backdrop-blur-xl z-50 shrink-0"
             style={{ 
                 background: 'rgba(0, 0, 0, 0.8)',
                 borderColor: `${theme.accentColor}33`,
@@ -96,10 +96,10 @@ const SoundtrackPlayer = ({ genre }) => {
             />
 
             {/* Track Info & Play Control */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2.5 md:gap-4">
                 <button
                     onClick={togglePlay}
-                    className="w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95 group shrink-0"
                     style={{ 
                         background: theme.buttonPrimary,
                         boxShadow: `0 0 15px ${theme.accentGlow}`
@@ -107,22 +107,22 @@ const SoundtrackPlayer = ({ genre }) => {
                 >
                     <FontAwesomeIcon 
                         icon={isPlaying ? faPause : faPlay} 
-                        className="text-white text-sm"
+                        className="text-white text-xs md:text-sm"
                     />
                 </button>
 
-                <div className="flex flex-col">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-40 game-text" style={{ color: theme.accentColor }}>
+                <div className="flex flex-col min-w-0">
+                    <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] opacity-40 game-text truncate" style={{ color: theme.accentColor }}>
                         Atmosphere
                     </span>
-                    <span className="text-sm font-bold text-white tracking-wide game-text">
+                    <span className="text-xs md:text-sm font-bold text-white tracking-wide game-text truncate">
                         {trackTitles[genre.toLowerCase()] || 'LoreForge Theme'}
                     </span>
                 </div>
             </div>
 
             {/* Volume Controls */}
-            <div className="flex items-center gap-4 min-w-[140px]">
+            <div className="hidden sm:flex items-center gap-4 min-w-[140px]">
                 <button 
                     onClick={toggleMute}
                     className="text-white/40 hover:text-white transition-colors"

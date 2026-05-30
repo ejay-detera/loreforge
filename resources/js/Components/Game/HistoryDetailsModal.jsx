@@ -156,7 +156,7 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
 
                     {/* Stats bar */}
                     {details && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 px-6 py-4 border-b border-white/10 shrink-0 bg-black/30">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 px-4 py-3 sm:px-6 sm:py-4 border-b border-white/10 shrink-0 bg-black/30">
                             <div className="bg-white/[0.03] border border-white/10 rounded-[10px] p-3 flex flex-col gap-1">
                                 <span className="text-[9px] uppercase tracking-[0.15em] text-white/30">Outcome</span>
                                 <span className="text-sm font-bold truncate" style={{ color: outcomeColor }}>
@@ -302,13 +302,13 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
                     </div>
 
                     {/* Footer */}
-                    <div className="px-6 py-3.5 border-t border-white/10 flex justify-between items-center bg-black/30 shrink-0">
+                    <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-white/10 flex flex-wrap gap-2.5 justify-between items-center bg-black/30 shrink-0">
                         <div>
                             {details && (isVictory || isDefeat) && (
                                 <button
                                     onClick={handleShareToggle}
                                     disabled={sharing}
-                                    className={`px-[18px] py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] font-bold transition-all duration-200 flex items-center gap-2 ${
+                                    className={`px-[14px] py-[8px] sm:px-[18px] sm:py-[9px] rounded-[10px] text-[10px] sm:text-[11px] uppercase tracking-[0.15em] font-bold transition-all duration-200 flex items-center gap-2 ${
                                         details.is_public
                                             ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20'
                                             : 'bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/20'
@@ -319,15 +319,15 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
                                     ) : (
                                         <FontAwesomeIcon icon={details.is_public ? faLock : faShareNodes} />
                                     )}
-                                    {details.is_public ? 'Unshare Campaign' : 'Share to Community'}
+                                    {details.is_public ? 'Unshare' : 'Share'}
                                 </button>
                             )}
                         </div>
                         <button
-                            className="px-[22px] py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 bg-white/[0.06] border border-white/[0.12] text-white/70 hover:bg-white/[0.12] hover:text-white font-bold"
+                            className="px-[16px] py-[8px] sm:px-[22px] sm:py-[9px] rounded-[10px] text-[10px] sm:text-[11px] uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 bg-white/[0.06] border border-white/[0.12] text-white/70 hover:bg-white/[0.12] hover:text-white font-bold"
                             onClick={onClose}
                         >
-                            Close Chronicle
+                            Close
                         </button>
                     </div>
                 </div>

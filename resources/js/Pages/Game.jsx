@@ -27,6 +27,18 @@ const Game = () => {
     } = useGame();
 
     const [enemyHP, setEnemyHP] = useState(120);
+    const [isMobile, setIsMobile] = useState(false);
+    const [isTablet, setIsTablet] = useState(false);
+
+    useEffect(() => {
+        const checkResponsive = () => {
+            setIsMobile(window.innerWidth < 640);
+            setIsTablet(window.innerWidth >= 640 && window.innerWidth < 1024);
+        };
+        checkResponsive();
+        window.addEventListener('resize', checkResponsive);
+        return () => window.removeEventListener('resize', checkResponsive);
+    }, []);
     const [showExitModal, setShowExitModal] = useState(false);
     const [textKey, setTextKey] = useState(0);
     const [dontShowExitModal, setDontShowExitModal] = useState(false);
@@ -426,7 +438,9 @@ const Game = () => {
     };
 
     const inventoryItems = Array.isArray(inventory)
-        ? inventory.map(i => (typeof i === 'string' ? i : i?.item_name ?? ''))
+        ? inventory
+            .map(i => (typeof i === 'string' ? i : i?.item_name ?? i?.itemName ?? ''))
+            .filter(Boolean)
         : [];
 
     /* ── Error ───────────────────────────────────────────────────────── */
@@ -582,6 +596,33 @@ const Game = () => {
     }
 
     /* ── MAIN BATTLE SCREEN ──────────────────────────────────────────── */
+    const playerSpriteSize = isMobile ? '120px' : isTablet ? '150px' : '200px';
+    const playerPlatformWidth = isMobile ? '160px' : isTablet ? '200px' : '280px';
+    const playerPlatformHeight = isMobile ? '60px' : isTablet ? '75px' : '110px';
+
+    const enemySpriteSize = isMobile ? '80px' : isTablet ? '100px' : '125px';
+    const enemyPlatformWidth = isMobile ? '130px' : isTablet ? '160px' : '220px';
+    const enemyPlatformHeight = isMobile ? '45px' : isTablet ? '55px' : '80px';
+
+    const playerLeft = isMobile ? '12%' : isTablet ? '18%' : '24%';
+    const enemyRight = isMobile ? '12%' : isTablet ? '20%' : '28%';
+
+    const arenaHeight = isMobile ? '30vh' : isTablet ? '38vh' : '42vh';
+    const arenaMinHeight = isMobile ? '170px' : isTablet ? '220px' : '260px';
+    const arenaMaxHeight = isMobile ? '240px' : isTablet ? '300px' : '340px';
+
+    const enemyStatBoxStyle = isMobile
+        ? { top: '8px', left: '8px', width: '150px' }
+        : isTablet
+        ? { top: '12px', left: '16px', width: '200px' }
+        : { top: '12px', left: '16px', width: '280px' };
+
+    const playerStatBoxStyle = isMobile
+        ? { bottom: '6%', right: '8px', width: '150px' }
+        : isTablet
+        ? { bottom: '6%', right: '16px', width: '200px' }
+        : { bottom: '6%', right: '16px', width: '230px' };
+
     return (
         <GenreContainer genre={genre} className="overflow-hidden flex flex-col h-screen">
 
@@ -593,24 +634,27 @@ const Game = () => {
             />
 
             {/* Back button */}
-            <div className="absolute top-4 right-4 z-30">
+            <div className="absolute top-3 right-3 md:top-4 md:right-4 z-30">
                 <GenreButton
                     genre={genre}
                     variant="outline"
                     onClick={handleBackButton}
                     size="small"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-1.5 px-2 py-1 text-[10px] md:text-xs"
                 >
                     <FontAwesomeIcon icon={faArrowLeft} />
-                    Back
+                    <span className="hidden xs:inline">Back</span>
                 </GenreButton>
             </div>
 
-            {/* ── BATTLE ARENA ── */}
-            <div
-                className={`relative w-full shrink-0 overflow-hidden ${battlePhase ? 'battle-screen-shake' : ''}`}
-                style={{ height: '42vh', minHeight: '260px', maxHeight: '340px' }}
-            >
+            {/* Inner scrollable wrapper to prevent vertical clipping on mobile/tablet */}
+            <div className="flex-1 flex flex-col min-h-0 overflow-y-auto md:overflow-hidden">
+
+                {/* ── BATTLE ARENA ── */}
+                <div
+                    className={`relative w-full shrink-0 overflow-hidden ${battlePhase ? 'battle-screen-shake' : ''}`}
+                    style={{ height: arenaHeight, minHeight: arenaMinHeight, maxHeight: arenaMaxHeight }}
+                >
                 {/* ── GROUND STAGE LINE ── */}
                 <div
                     className="absolute left-0 right-0 pointer-events-none z-10"
@@ -633,42 +677,40 @@ const Game = () => {
 
                 {/* ── ENEMY STAT BOX — top LEFT ── */}
                 <div
-                    className={`absolute top-3 left-4 z-20 ${spritesLoaded ? 'stat-fade-in' : ''}`}
-                    style={{ maxWidth: '280px' }}
+                    className={`absolute z-20 ${spritesLoaded ? 'stat-fade-in' : ''}`}
+                    style={enemyStatBoxStyle}
                 >
-                    <GenreCard genre={genre} className="px-3 py-2">
-                        <div className="flex items-center justify-between gap-4 mb-1.5">
-                            <span className="font-bold text-white text-sm game-text" style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.3' }}>
+                    <GenreCard genre={genre} className="px-2.5 py-1.5 md:px-3 md:py-2">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                            <span className="font-bold text-white text-[11px] md:text-sm game-text truncate" style={{ whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: '1.3' }}>
                                 {apiEnemyName || fallbackEnemyName}
                             </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-red-400 w-5 shrink-0 game-text">HP</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] md:text-[10px] font-bold text-red-400 w-4 md:w-5 shrink-0 game-text">HP</span>
                             <div className={`flex-1 ${hpDamage ? 'hp-damage' : ''}`}>
                                 <GenreStatBar genre={genre} value={enemyHP} max={ENEMY_MAX_HP} type="enemyHp" />
                             </div>
                         </div>
                     </GenreCard>
-                    <div className="flex gap-1.5 mt-1.5">
-                        <GenreCard genre={genre} className="px-2.5 py-1 text-[10px] font-mono">
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                        <GenreCard genre={genre} className="px-2 py-0.5 md:px-2.5 md:py-1 text-[9px] md:text-[10px] font-mono">
                             <span className="text-white/60 game-text">Turn</span>{' '}
                             <span className="font-bold text-white game-text">{currentTurn}</span>
                             <span className="text-white/60 game-text">/{maxTurns}</span>
                         </GenreCard>
-                        <GenreCard genre={genre} className="px-2.5 py-1 text-[10px] font-bold">
+                        <GenreCard genre={genre} className="px-2 py-0.5 md:px-2.5 md:py-1 text-[9px] md:text-[10px] font-bold">
                             <span className="game-text">{genreLabel}</span>
                         </GenreCard>
                     </div>
                 </div>
 
-                {/* ── ENEMY SPRITE — upper right, standing on platform on the ground line ── */}
+                {/* ── ENEMY SPRITE ── */}
                 <div
                     className={`absolute z-10 ${spritesLoaded ? 'slide-in-right bounce-in' : ''} ${battlePhase === 'player-attack' ? 'battle-enemy-hit' : ''} ${battlePhase === 'enemy-attack' ? 'battle-enemy-attack' : ''}`}
                     style={{
-                        // Moved way higher to match Pokemon-style perspective
                         bottom: 'calc(45% - 18px)',
-                        right: '28%',
-                        // Removed flex layout to allow manual overlapping
+                        right: enemyRight,
                     }}
                 >
                     <img
@@ -678,12 +720,12 @@ const Game = () => {
                         draggable={false}
                         className="rounded-lg sprite"
                         style={{
-                            width: '125px',
-                            height: '125px',
+                            width: enemySpriteSize,
+                            height: enemySpriteSize,
                             objectFit: 'contain',
                             filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.6))',
                             position: 'absolute',
-                            bottom: '5px', // Sit slightly above platform center
+                            bottom: '5px',
                             left: '50%',
                             transform: 'translateX(-50%)',
                             zIndex: 10,
@@ -699,6 +741,8 @@ const Game = () => {
                             left: '50%',
                             transform: 'translateX(-50%)',
                             zIndex: 0,
+                            width: enemyPlatformWidth,
+                            height: enemyPlatformHeight,
                         }}
                     />
 
@@ -706,7 +750,7 @@ const Game = () => {
                     {showEnemyDmg && (
                         <div
                             key={`edm-${currentTurn}-${Date.now()}`}
-                            className="battle-damage-number"
+                            className="battle-damage-number text-xs md:text-sm"
                             style={{ top: '-10px', left: '50%', transform: 'translateX(-50%)', color: showEnemyDmg.color }}
                         >
                             {showEnemyDmg.value}
@@ -718,9 +762,9 @@ const Game = () => {
                 {battlePhase === 'player-attack' && (
                     <>
                         <div className="battle-screen-flash" />
-                        <div className="battle-impact-burst" style={{ top: 'calc(25% - 30px)', right: 'calc(28% + 40px)' }} />
-                        <div className="battle-slash-left" style={{ top: 'calc(25% - 30px)', right: 'calc(28% + 10px)' }} />
-                        <div className="battle-slash-right" style={{ top: 'calc(25% - 20px)', right: 'calc(28% + 20px)' }} />
+                        <div className="battle-impact-burst" style={{ top: 'calc(25% - 30px)', right: `calc(${enemyRight} + 40px)` }} />
+                        <div className="battle-slash-left" style={{ top: 'calc(25% - 30px)', right: `calc(${enemyRight} + 10px)` }} />
+                        <div className="battle-slash-right" style={{ top: 'calc(25% - 20px)', right: `calc(${enemyRight} + 20px)` }} />
                     </>
                 )}
 
@@ -728,9 +772,9 @@ const Game = () => {
                 {battlePhase === 'enemy-attack' && (
                     <>
                         <div className="battle-screen-flash" />
-                        <div className="battle-impact-burst" style={{ top: 'calc(60%)', left: 'calc(24% + 50px)' }} />
-                        <div className="battle-slash-left" style={{ top: 'calc(60%)', left: 'calc(24% + 20px)' }} />
-                        <div className="battle-slash-right" style={{ top: 'calc(60% + 10px)', left: 'calc(24% + 30px)' }} />
+                        <div className="battle-impact-burst" style={{ top: 'calc(60%)', left: `calc(${playerLeft} + 50px)` }} />
+                        <div className="battle-slash-left" style={{ top: 'calc(60%)', left: `calc(${playerLeft} + 20px)` }} />
+                        <div className="battle-slash-right" style={{ top: 'calc(60% + 10px)', left: `calc(${playerLeft} + 30px)` }} />
                     </>
                 )}
 
@@ -739,15 +783,12 @@ const Game = () => {
                     <div className="battle-scan-overlay" key={`scan-${currentTurn}-${Date.now()}`} />
                 )}
 
-                {/* ── PLAYER SPRITE — lower left, standing on platform on the ground line ── */}
+                {/* ── PLAYER SPRITE ── */}
                 <div
                     className={`absolute z-10 ${spritesLoaded ? 'slide-in-left bounce-in' : ''} ${battlePhase === 'player-attack' ? 'battle-player-attack' : ''} ${battlePhase === 'enemy-attack' ? 'battle-player-hit' : ''} ${battlePhase === 'player-heal' ? 'battle-player-heal' : ''} ${battlePhase === 'player-mana' ? 'battle-player-mana' : ''} ${battlePhase === 'player-dodge' ? 'battle-player-dodge' : ''} ${battlePhase === 'player-flee' ? 'battle-player-flee' : ''} ${battlePhase === 'player-defend' ? 'battle-player-defend' : ''}`}
                     style={{
-                        // bottom of wrapper = ground line - half of player ellipse height (~30px)
-                        // so ellipse center sits exactly on the ground line
                         bottom: 'calc(10% - 30px)',
-                        left: '24%',
-                        // Removed flex layout to allow manual overlapping
+                        left: playerLeft,
                     }}
                 >
                     <img
@@ -756,12 +797,12 @@ const Game = () => {
                         draggable={false}
                         className="rounded-lg sprite"
                         style={{
-                            width: '200px',
-                            height: '200px',
+                            width: playerSpriteSize,
+                            height: playerSpriteSize,
                             objectFit: 'contain',
                             filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.7))',
                             position: 'absolute',
-                            bottom: '10px', // Sit slightly above platform center
+                            bottom: '10px',
                             left: '50%',
                             transform: 'translateX(-50%)',
                             zIndex: 10,
@@ -777,8 +818,8 @@ const Game = () => {
                             left: '50%',
                             transform: 'translateX(-50%)',
                             zIndex: 0,
-                            width: '280px',
-                            height: '110px',
+                            width: playerPlatformWidth,
+                            height: playerPlatformHeight,
                         }}
                     />
 
@@ -786,7 +827,7 @@ const Game = () => {
                     {showPlayerDmg && (
                         <div
                             key={`pdm-${currentTurn}-${Date.now()}`}
-                            className="battle-damage-number"
+                            className="battle-damage-number text-xs md:text-sm"
                             style={{ top: '10px', left: '50%', transform: 'translateX(-50%)', color: showPlayerDmg.color }}
                         >
                             {showPlayerDmg.value}
@@ -797,7 +838,7 @@ const Game = () => {
                     {showActionText && (
                         <div
                             key={`act-${currentTurn}-${Date.now()}`}
-                            className="battle-action-text"
+                            className="battle-action-text text-xs md:text-sm"
                             style={{ top: '-15px', left: '50%', transform: 'translateX(-50%)', color: showActionText.color }}
                         >
                             {showActionText.text}
@@ -808,30 +849,30 @@ const Game = () => {
                 {/* ── PLAYER STAT BOX — bottom RIGHT ── */}
                 <div
                     className={`absolute z-20 ${spritesLoaded ? 'stat-fade-in' : ''}`}
-                    style={{ bottom: '6%', right: '4%', maxWidth: '230px' }}
+                    style={playerStatBoxStyle}
                 >
-                    <GenreCard genre={genre} className="px-4 py-2.5">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="font-bold text-white text-sm truncate max-w-[130px] game-text font-8bit">
+                    <GenreCard genre={genre} className="px-2.5 py-1.5 md:px-4 md:py-2.5">
+                        <div className="flex items-center justify-between mb-1.5 md:mb-2">
+                            <span className="font-bold text-white text-[11px] md:text-sm truncate max-w-[90px] md:max-w-[130px] game-text font-8bit">
                                 {charName}
                             </span>
-                            <span className="text-xs text-white/50 shrink-0 game-text font-8bit">Lv.{charLevel}</span>
+                            <span className="text-[9px] md:text-xs text-white/50 shrink-0 game-text font-8bit">Lv.{charLevel}</span>
                         </div>
-                        <div className="flex items-center gap-2 mb-1.5">
-                            <span className="text-[10px] font-bold text-green-400 w-5 shrink-0 game-text font-8bit">HP</span>
+                        <div className="flex items-center gap-1.5 mb-1 md:mb-1.5">
+                            <span className="text-[9px] md:text-[10px] font-bold text-green-400 w-4 md:w-5 shrink-0 game-text font-8bit">HP</span>
                             <div className={`flex-1 ${hpDamage ? 'hp-damage' : ''}`}>
                                 <GenreStatBar genre={genre} value={currentHP} max={maxHP} type="hp" />
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <span className="text-[10px] font-bold text-blue-400 w-5 shrink-0 game-text font-8bit">MP</span>
+                        <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-[9px] md:text-[10px] font-bold text-blue-400 w-4 md:w-5 shrink-0 game-text font-8bit">MP</span>
                             <div className={`flex-1 ${mpDamage ? 'mp-damage' : ''}`}>
                                 <GenreStatBar genre={genre} value={currentMP} max={maxMP} type="mp" />
                             </div>
                         </div>
-                        <div className="flex justify-between text-[10px] text-white/40 mt-0.5">
-                            <span className="game-text font-8bit">HP: {currentHP}/{maxHP}</span>
-                            <span className="game-text font-8bit">MP: {currentMP}/{maxMP}</span>
+                        <div className="flex justify-between text-[8px] md:text-[10px] text-white/40 mt-0.5">
+                            <span className="game-text font-8bit">{currentHP}/{maxHP}</span>
+                            <span className="game-text font-8bit">{currentMP}/{maxMP}</span>
                         </div>
                     </GenreCard>
                 </div>
@@ -839,12 +880,12 @@ const Game = () => {
 
             {/* ── BOTTOM PANEL ── */}
             <div
-                className="flex border-t-2 flex-1 min-h-0"
+                className="flex flex-col md:flex-row border-t-2 flex-1 min-h-0"
                 style={{ borderColor: 'rgba(255,255,255,0.1)' }}
             >
                 {/* LEFT — dialog / story text */}
-                <div className="flex-1 p-4 flex flex-col min-w-0 min-h-0 bg-black/50 backdrop-blur">
-                    <p className="text-xs font-bold text-white/50 uppercase tracking-widest mb-2 game-text">
+                <div className="flex-1 p-2.5 md:p-4 flex flex-col min-w-0 min-h-0 bg-black/50 backdrop-blur">
+                    <p className="text-[9px] md:text-xs font-bold text-white/50 uppercase tracking-widest mb-1 md:mb-2 game-text">
                         What will <span style={{ color: 'var(--accent, #C9A84C)' }}>{charName}</span> do?
                     </p>
                     <div
@@ -852,29 +893,30 @@ const Game = () => {
                         style={{
                             border: '1px solid rgba(255,255,255,0.08)',
                             borderRadius: '8px',
-                            padding: '10px 12px',
+                            padding: isMobile ? '6px 8px' : '8px 10px',
                             background: 'rgba(0,0,0,0.3)',
                         }}
                     >
                         {currentTurnData ? (
-                            <p className="text-white/85 text-sm leading-relaxed game-text">
+                            <p className="text-white/85 text-xs md:text-sm leading-relaxed game-text">
                                 <TypewriterText key={textKey} text={currentTurnData.story_text} speed={25} />
                             </p>
                         ) : (
-                            <p className="text-white/30 text-sm italic game-text">[ Story text appears here... ]</p>
+                            <p className="text-white/30 text-xs md:text-sm italic game-text">[ Story text appears here... ]</p>
                         )}
                     </div>
                 </div>
 
                 {/* Divider */}
-                <div style={{ width: '1px', background: 'rgba(255,255,255,0.08)' }} />
+                <div className="hidden md:block w-[1px]" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                <div className="block md:hidden h-[1px] w-full" style={{ background: 'rgba(255,255,255,0.08)' }} />
 
                 {/* RIGHT — 2×2 choice buttons */}
-                <div className="shrink-0 p-3 flex flex-col bg-black/60 backdrop-blur" style={{ width: '260px' }}>
-                    <p className="text-center text-[10px] font-bold text-white/40 uppercase tracking-widest mb-2 game-text">
+                <div className="shrink-0 p-2.5 md:p-3 flex flex-col bg-black/60 backdrop-blur w-full md:w-[260px]">
+                    <p className="text-center text-[9px] md:text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1 md:mb-1.5 game-text">
                         Choose Action
                     </p>
-                    <div className="grid grid-cols-2 gap-2 flex-1">
+                    <div className="grid grid-cols-2 gap-1.5 md:gap-2 flex-1 min-h-[76px] md:min-h-0">
                         {[0, 1, 2, 3].map((i) => {
                             const choiceKeys = Object.keys(currentTurnData?.outcomes ?? {});
                             const choiceKey = choiceKeys[i];
@@ -887,7 +929,7 @@ const Game = () => {
                                     onClick={() => handleChoice(choiceKey)}
                                     disabled={loading || !!battlePhase}
                                     size="small"
-                                    className="px-1.5 text-[9px] leading-snug h-full w-full uppercase font-bold tracking-normal text-center break-words hyphens-auto game-text"
+                                    className="px-1 md:px-1.5 text-[9px] md:text-[10px] leading-snug h-full w-full uppercase font-bold tracking-normal text-center break-words hyphens-auto game-text min-h-[36px] md:min-h-0"
                                     title={displayText}
                                 >
                                     {displayText}
@@ -895,7 +937,7 @@ const Game = () => {
                             ) : (
                                 <div
                                     key={i}
-                                    className="rounded-lg flex items-center justify-center text-white/15 text-[10px]"
+                                    className="rounded-lg flex items-center justify-center text-white/15 text-[10px] min-h-[36px] md:min-h-0"
                                     style={{ border: '1px dashed rgba(255,255,255,0.12)' }}
                                 >
                                     —
@@ -908,21 +950,21 @@ const Game = () => {
 
             {/* ── INVENTORY BAR ── */}
             <div
-                className="flex items-center gap-2 px-4 py-2 shrink-0 overflow-x-auto"
+                className="flex items-center gap-1.5 px-2.5 py-1 md:px-4 md:py-2 shrink-0 overflow-x-auto"
                 style={{
                     background: 'rgba(0,0,0,0.7)',
                     borderTop: '1px solid rgba(255,255,255,0.08)',
                 }}
             >
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest shrink-0 mr-1 game-text font-8bit">
+                <span className="text-[9px] md:text-[10px] font-bold text-white/40 uppercase tracking-widest shrink-0 mr-1 game-text font-8bit">
                     Inventory:
                 </span>
                 {inventoryItems.length === 0 && (
-                    <span className="text-[11px] text-white/25 game-text font-8bit">— empty —</span>
+                    <span className="text-[10px] md:text-[11px] text-white/25 game-text font-8bit">— empty —</span>
                 )}
                 {inventoryItems.map((item, idx) => (
-                    <GenreCard key={idx} genre={genre} className="px-3 py-1 shrink-0">
-                        <span className="text-[11px] text-white/80 font-medium whitespace-nowrap game-text font-8bit">
+                    <GenreCard key={idx} genre={genre} className="px-2.5 py-0.5 md:px-3 md:py-1 shrink-0">
+                        <span className="text-[10px] md:text-[11px] text-white/80 font-medium whitespace-nowrap game-text font-8bit">
                             {item}
                         </span>
                     </GenreCard>
@@ -930,19 +972,20 @@ const Game = () => {
                 {Array.from({ length: Math.max(0, 6 - inventoryItems.length) }).map((_, i) => (
                     <div
                         key={`e-${i}`}
-                        className="px-3 py-1 rounded-lg shrink-0"
+                        className="px-2.5 py-0.5 md:px-3 md:py-1 rounded-lg shrink-0"
                         style={{ border: '1px dashed rgba(255,255,255,0.12)' }}
                     >
-                        <span className="text-[11px] text-white/20 game-text whitespace-nowrap">— empty —</span>
+                        <span className="text-[10px] md:text-[11px] text-white/20 game-text whitespace-nowrap">— empty —</span>
                     </div>
                 ))}
+            </div>
+
             </div>
 
             {/* ── SOUNDTRACK PLAYER ── */}
             <SoundtrackPlayer genre={genre} />
 
         </GenreContainer>
-
     );
 };
 

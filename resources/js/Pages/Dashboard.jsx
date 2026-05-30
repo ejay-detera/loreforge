@@ -193,13 +193,44 @@ function StatCard({ icon, value, label, accent, glow, dim, gradFrom, gradTo, run
 }
 
 // ─── Adventures Table Row ─────────────────────────────────────────────────────
-function AdventureRow({ character, genre, turns, maxTurns, outcome }) {
+function AdventureRow({ character, genre, turns, maxTurns, outcome, isMobile }) {
   const pct = Math.round((turns / maxTurns) * 100);
   const OUTCOME_COLORS = { Victory: '#10b981', Defeat: '#e05555', Abandoned: '#8899aa', Active: '#3b82f6' };
   const OUTCOME_ICONS = { Victory: 'fas fa-trophy', Defeat: 'fas fa-skull', Abandoned: 'fas fa-clock', Active: 'fas fa-running' };
   const CHAR_COLORS = { Fantasy: '#f5c842', 'Sci-Fi': '#00BFFF', Horror: '#e05555' };
   const trackColor = { Fantasy: 'linear-gradient(90deg,#f5c842,#d4920d)', 'Sci-Fi': 'linear-gradient(90deg,#3b9eff,#00BFFF)', Horror: 'linear-gradient(90deg,#e05555,#8B0000)' };
   const [hovered, setHovered] = useState(false);
+
+  if (isMobile) {
+    return (
+      <div
+        className="p-4 flex flex-col gap-3"
+        style={{ borderBottom: '1px solid rgba(255,255,255,.04)', background: hovered ? 'rgba(255,255,255,.025)' : 'transparent', transition: 'background .2s' }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium flex items-center gap-2" style={{ color: '#e8e6f0' }}>
+            <i className="fas fa-user text-xs" style={{ color: CHAR_COLORS[genre] ?? '#8899aa' }} />
+            {character}
+          </div>
+          <GenrePill genre={genre} />
+        </div>
+        <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <div className="w-12 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.08)' }}>
+              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: trackColor[genre] ?? 'linear-gradient(90deg,#10b981,#3b9eff)' }} />
+            </div>
+            <span style={{ color: '#6b7a99' }}>{turns}/{maxTurns}</span>
+          </div>
+          <div className="flex items-center gap-1.5 font-medium" style={{ color: OUTCOME_COLORS[outcome] }}>
+            <i className={`${OUTCOME_ICONS[outcome]} text-xs`} />
+            {outcome}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -215,7 +246,7 @@ function AdventureRow({ character, genre, turns, maxTurns, outcome }) {
       <div className="px-5 py-3.5 flex items-center"><GenrePill genre={genre} /></div>
       <div className="px-5 py-3.5 flex items-center gap-2">
         <div className="w-12 h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,.08)' }}>
-          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: trackColor[genre] ?? 'linear-gradient(90deg,#10b981,#3b9eff)' }} />
+          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: trackColor[genre] ?? 'linear-gradient(90deg,#f5c842,#d4920d)' }} />
         </div>
         <span className="text-xs" style={{ color: '#6b7a99' }}>{turns}/{maxTurns}</span>
       </div>
@@ -297,6 +328,16 @@ export default function Dashboard({ auth, stats, recentSessions, spotlightCampai
   const heroRef = useRef(null);
   const { ref: statsRef, visible: statsVisible } = useScrollReveal(0.1);
   const { ref: tableRef, visible: tableVisible } = useScrollReveal(0.1);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkResponsive = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkResponsive();
+    window.addEventListener('resize', checkResponsive);
+    return () => window.removeEventListener('resize', checkResponsive);
+  }, []);
 
   const firstName = auth?.user?.username?.split(' ')[0] || 'Adventurer';
 
@@ -330,7 +371,7 @@ export default function Dashboard({ auth, stats, recentSessions, spotlightCampai
               style={{
                 background: 'linear-gradient(135deg, rgba(12,16,30,.97) 0%, rgba(18,22,40,.97) 100%)',
                 border: '1.5px solid rgba(245,200,66,.18)',
-                padding: '36px 40px',
+                padding: 'clamp(20px, 5vw, 40px)',
               }}
             >
               {/* Animated top border */}
@@ -431,12 +472,14 @@ export default function Dashboard({ auth, stats, recentSessions, spotlightCampai
 
               <div className="rounded-2xl overflow-hidden mb-8" style={{ border: '1.5px solid rgba(255,255,255,.07)', background: 'rgba(12,16,30,.8)', backdropFilter: 'blur(8px)' }}>
                 {/* Table header */}
-                <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 110px 1fr', background: 'rgba(255,255,255,.04)', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
-                  {['Character', 'Genre', 'Turns', 'Outcome'].map(h => (
-                    <div key={h} className="px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: '#4a5568', letterSpacing: '0.3em' }}>{h}</div>
-                  ))}
-                </div>
-                {(recentSessions ?? []).map((s, i) => <AdventureRow key={i} {...s} />)}
+                {!isMobile && (
+                  <div className="grid" style={{ gridTemplateColumns: '1fr 1fr 110px 1fr', background: 'rgba(255,255,255,.04)', borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+                    {['Character', 'Genre', 'Turns', 'Outcome'].map(h => (
+                      <div key={h} className="px-5 py-3 text-xs font-semibold uppercase tracking-widest" style={{ color: '#4a5568', letterSpacing: '0.3em' }}>{h}</div>
+                    ))}
+                  </div>
+                )}
+                {(recentSessions ?? []).map((s, i) => <AdventureRow key={i} {...s} isMobile={isMobile} />)}
               </div>
             </div>
 

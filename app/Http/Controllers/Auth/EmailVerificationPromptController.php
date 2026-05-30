@@ -23,6 +23,11 @@ class EmailVerificationPromptController extends Controller
             return redirect()->intended(route('dashboard', absolute: false));
         }
 
+        // If redirecting back with a status from another controller, use that status directly
+        if (session('status')) {
+            return Inertia::render('Auth/VerifyEmail', ['status' => session('status')]);
+        }
+
         // Check if OTP was already sent in this session (prevent multiple sends)
         if (session()->has('otp_sent_recently')) {
             return Inertia::render('Auth/VerifyEmail', ['status' => 'otp-sent']);

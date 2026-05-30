@@ -139,20 +139,23 @@ function StatBar({ label, value, accent, accentGlow }) {
 }
 
 // ─── Genre Thumbnail Card (bottom strip) ────────────────────────────
-function GenreThumbnail({ genre, isSelected, onClick }) {
+function GenreThumbnail({ genre, isSelected, onClick, isMobile }) {
     const [hovered, setHovered] = useState(false);
     const active = isSelected || hovered;
 
+    const width = isMobile ? 64 : 90;
+    const height = isMobile ? 80 : 110;
+
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile ? 4 : 8 }}>
             <div
                 onClick={onClick}
                 onMouseEnter={() => setHovered(true)}
                 onMouseLeave={() => setHovered(false)}
                 style={{
                     position: 'relative',
-                    width: 90,
-                    height: 110,
+                    width: width,
+                    height: height,
                     cursor: 'pointer',
                     borderRadius: 6,
                     overflow: 'hidden',
@@ -194,7 +197,7 @@ function GenreThumbnail({ genre, isSelected, onClick }) {
             </div>
 
             <span style={{
-                fontFamily: 'Poppins, sans-serif', fontSize: 11, letterSpacing: '0.15em',
+                fontFamily: 'Poppins, sans-serif', fontSize: isMobile ? 9 : 11, letterSpacing: '0.15em',
                 fontWeight: 800, textTransform: 'uppercase',
                 color: isSelected ? genre.accent : 'rgba(255,255,255,0.4)',
                 textShadow: isSelected ? `0 0 10px ${genre.accentGlow}` : 'none',
@@ -214,6 +217,18 @@ export default function NewGame() {
     const [localError, setLocalError] = useState('');
     const [loading, setLoading] = useState(false);
     const [nameEditing, setNameEditing] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [isTablet, setIsTablet] = useState(false);
+
+    useEffect(() => {
+        const checkResponsive = () => {
+            setIsMobile(window.innerWidth < 640);
+            setIsTablet(window.innerWidth >= 640 && window.innerWidth < 1024);
+        };
+        checkResponsive();
+        window.addEventListener('resize', checkResponsive);
+        return () => window.removeEventListener('resize', checkResponsive);
+    }, []);
 
     const selected = genres.find(g => g.id === selectedGenreId) || genres[0];
     const selectedIndex = genres.findIndex(g => g.id === selectedGenreId);
@@ -303,12 +318,12 @@ export default function NewGame() {
                 <div style={{
                     position: 'relative', zIndex: 20,
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '20px 32px 0',
+                    padding: isMobile ? '12px 16px 0' : '20px 32px 0',
                 }}>
-                    <span className="char-select-title">Character Select</span>
+                    <span className="char-select-title" style={{ fontSize: isMobile ? '16px' : 'inherit' }}>Character Select</span>
                     {/* Decorative line */}
-                    <div style={{ flex: 1, height: 1, margin: '0 24px', background: 'linear-gradient(to right, rgba(255,255,255,0.15), transparent)' }} />
-                    <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em' }}>
+                    {!isMobile && <div style={{ flex: 1, height: 1, margin: '0 24px', background: 'linear-gradient(to right, rgba(255,255,255,0.15), transparent)' }} />}
+                    <span style={{ fontFamily: 'Poppins, sans-serif', fontSize: isMobile ? 9 : 11, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.15em' }}>
                         SELECT YOUR REALM
                     </span>
                 </div>
@@ -318,59 +333,69 @@ export default function NewGame() {
                     position: 'relative', zIndex: 20,
                     flex: 1,
                     display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
+                    gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
                     gap: 0,
-                    padding: '24px 32px 0',
+                    padding: isMobile ? '16px 16px 0' : '24px 32px 0',
                     minHeight: 0,
+                    overflowY: isMobile ? 'auto' : 'hidden',
                 }}>
 
                     {/* LEFT — big sprite + genre name */}
-                    <div style={{
-                        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-                        paddingBottom: 0,
-                    }}>
-                        {/* Sprite */}
-                        <div
-                            key={`sprite-${selectedGenreId}`}
-                            className="slide-left"
-                            style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', flex: 1, position: 'relative' }}
-                        >
-                            <img
-                                src={selected.sprite}
-                                alt={selected.name}
-                                draggable={false}
-                                className="sprite"
-                                style={{
-                                    height: '85%',
-                                    maxWidth: '140%',
-                                    objectFit: 'contain',
-                                    transform: 'scale(1.3) translateY(5%) translateX(10%)',
-                                    transformOrigin: 'bottom center',
-                                    mixBlendMode: 'lighten',
-                                    filter: `drop-shadow(0 0 40px ${selected.accentGlow}) drop-shadow(0 0 80px ${selected.accentGlow}) contrast(1.1) brightness(1.15)`,
-                                    position: 'absolute',
-                                    bottom: 0,
-                                }}
-                            />
+                    {!isMobile && (
+                        <div style={{
+                            display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+                            paddingBottom: 0,
+                        }}>
+                            {/* Sprite */}
+                            <div
+                                key={`sprite-${selectedGenreId}`}
+                                className="slide-left"
+                                style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', flex: 1, position: 'relative' }}
+                            >
+                                <img
+                                    src={selected.sprite}
+                                    alt={selected.name}
+                                    draggable={false}
+                                    className="sprite"
+                                    style={{
+                                        height: isTablet ? '65%' : '85%',
+                                        maxWidth: '140%',
+                                        objectFit: 'contain',
+                                        transform: isTablet ? 'scale(1.1) translateY(5%) translateX(5%)' : 'scale(1.3) translateY(5%) translateX(10%)',
+                                        transformOrigin: 'bottom center',
+                                        mixBlendMode: 'lighten',
+                                        filter: `drop-shadow(0 0 40px ${selected.accentGlow}) drop-shadow(0 0 80px ${selected.accentGlow}) contrast(1.1) brightness(1.15)`,
+                                        position: 'absolute',
+                                        bottom: 0,
+                                    }}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* RIGHT — genre name, info panel, inputs */}
                     <div
                         key={`info-${selectedGenreId}`}
                         className="slide-right"
-                        style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingLeft: 32, gap: 18 }}
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: isMobile ? 'flex-start' : 'center',
+                            paddingLeft: isMobile ? 0 : 32,
+                            gap: isMobile ? 12 : 18,
+                            paddingBottom: isMobile ? 16 : 0,
+                        }}
                     >
                         {/* Genre name — big graffiti-style */}
                         <div>
-                            <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: 10, letterSpacing: '0.35em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: 4 }}>
+                            <p style={{ fontFamily: 'Poppins, sans-serif', fontSize: isMobile ? 8 : 10, letterSpacing: '0.35em', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: 4 }}>
                                 {selected.tagline}
                             </p>
                             <div
                                 className="genre-name-display"
                                 style={{
                                     fontFamily: "'Black Han Sans', 'Poppins', sans-serif",
-                                    fontSize: 'clamp(52px, 7vw, 80px)',
+                                    fontSize: isMobile ? '32px' : 'clamp(52px, 7vw, 80px)',
                                     fontWeight: 900,
                                     color: selected.accent,
                                     textShadow: `0 0 40px ${selected.accentGlow}, 0 0 80px ${selected.accentGlow}`,
@@ -388,14 +413,14 @@ export default function NewGame() {
                         {/* Description */}
                         <p style={{
                             fontFamily: 'Poppins, sans-serif', fontWeight: 300,
-                            fontSize: 13, lineHeight: 1.75, color: 'rgba(255,255,255,0.65)',
-                            maxWidth: 360,
+                            fontSize: isMobile ? 11 : 13, lineHeight: isMobile ? 1.5 : 1.75, color: 'rgba(255,255,255,0.65)',
+                            maxWidth: isMobile ? '100%' : 360,
                         }}>
                             {selected.description}
                         </p>
 
                         {/* Stats */}
-                        <div style={{ maxWidth: 280 }}>
+                        <div style={{ maxWidth: isMobile ? '100%' : 280 }}>
                             <StatBar label="Power" value={selected.stats.power} accent={selected.accent} accentGlow={selected.accentGlow} />
                             <StatBar label="Magic" value={selected.stats.magic} accent={selected.accent} accentGlow={selected.accentGlow} />
                             <StatBar label="Danger" value={selected.stats.danger} accent={selected.accent} accentGlow={selected.accentGlow} />
@@ -405,9 +430,9 @@ export default function NewGame() {
                         <div style={{ height: 1, background: `linear-gradient(to right, ${selected.accent}33, transparent)` }} />
 
                         {/* Inputs Container */}
-                        <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: isMobile ? 12 : 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                             {/* Name input */}
-                            <div style={{ flex: '1 1 min-content' }}>
+                            <div style={{ flex: '1 1 min-content', width: isMobile ? '100%' : 'auto' }}>
                                 <label style={{
                                     fontFamily: 'Poppins, sans-serif', fontSize: 9, letterSpacing: '0.3em',
                                     color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', display: 'block', marginBottom: 8,
@@ -421,12 +446,12 @@ export default function NewGame() {
                                     onChange={e => setCharacterName(e.target.value)}
                                     placeholder="HERO NAME..."
                                     maxLength={24}
-                                    style={{ '--genre-accent': selected.accent, maxWidth: '100%', width: 220 }}
+                                    style={{ '--genre-accent': selected.accent, maxWidth: '100%', width: isMobile ? '100%' : 220 }}
                                 />
                             </div>
 
                             {/* Session length */}
-                            <div style={{ flex: '1 1 min-content' }}>
+                            <div style={{ flex: '1 1 min-content', width: isMobile ? '100%' : 'auto' }}>
                                 <label style={{
                                     fontFamily: 'Poppins, sans-serif', fontSize: 9, letterSpacing: '0.3em',
                                     color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', display: 'block', marginBottom: 8,
@@ -446,7 +471,7 @@ export default function NewGame() {
                                         letterSpacing: '0.1em',
                                         padding: '8px 12px',
                                         maxWidth: '100%',
-                                        width: 220,
+                                        width: isMobile ? '100%' : 220,
                                         outline: 'none',
                                         cursor: 'pointer',
                                     }}
@@ -468,7 +493,7 @@ export default function NewGame() {
                                 fontFamily: 'Poppins, sans-serif',
                                 fontSize: 12,
                                 color: '#ff6666',
-                                maxWidth: 320,
+                                maxWidth: isMobile ? '100%' : 320,
                             }}>
                                 {localError}
                                 <button
@@ -488,71 +513,93 @@ export default function NewGame() {
                     borderTop: '1px solid rgba(255,255,255,0.08)',
                     background: 'rgba(0,0,0,0.55)',
                     backdropFilter: 'blur(12px)',
-                    padding: '16px 32px',
+                    padding: isMobile ? '12px 16px' : '16px 32px',
                     display: 'flex',
+                    flexDirection: isMobile ? 'column' : 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    gap: 16,
-                    marginTop: 24,
+                    gap: isMobile ? 12 : 16,
+                    marginTop: isMobile ? 0 : 24,
                 }}>
-                    {/* Return action */}
-                    <button
-                        onClick={() => router.visit('/dashboard')}
-                        className="bottom-action-label opacity-70 hover:opacity-100"
-                        style={{
-                            background: 'rgba(0,0,0,0.5)',
-                            border: '1.5px solid rgba(255,255,255,0.15)',
-                            padding: '8px 16px',
-                            borderRadius: '4px',
-                            fontFamily: 'inherit'
-                        }}
-                    >
-                        <span className="action-icon" style={{ borderColor: 'currentColor', color: 'rgba(255,255,255,0.6)' }}>&lt;</span>
-                        <span style={{ color: '#fff' }}>BACK TO DASHBOARD</span>
-                    </button>
-
                     {/* Thumbnails strip */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <button className="nav-btn" onClick={cycleLeft}>‹</button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 4 : 10, width: isMobile ? '100%' : 'auto', justifyContent: 'center' }}>
+                        <button className="nav-btn" onClick={cycleLeft} style={{ fontSize: isMobile ? 16 : 24, width: isMobile ? 28 : 40, height: isMobile ? 28 : 40 }}>‹</button>
 
-                        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', gap: isMobile ? 8 : 16, alignItems: 'flex-start' }}>
                             {genres.map((genre) => (
                                 <GenreThumbnail
                                     key={genre.id}
                                     genre={genre}
                                     isSelected={genre.id === selectedGenreId}
                                     onClick={() => setSelectedGenreId(genre.id)}
+                                    isMobile={isMobile}
                                 />
                             ))}
                         </div>
 
-                        <button className="nav-btn" onClick={cycleRight}>›</button>
+                        <button className="nav-btn" onClick={cycleRight} style={{ fontSize: isMobile ? 16 : 24, width: isMobile ? 28 : 40, height: isMobile ? 28 : 40 }}>›</button>
                     </div>
 
-                    {/* Confirm action */}
-                    <button
-                        className="confirm-btn"
-                        onClick={handleStartGame}
-                        disabled={!characterName || loading}
-                        style={{
-                            background: loading
-                                ? 'rgba(255,255,255,0.1)'
-                                : `linear-gradient(135deg, ${selected.accent}cc, ${selected.accent})`,
-                            color: selectedGenreId === 'fantasy' ? '#1a0e00' : '#fff',
-                            boxShadow: !loading && characterName ? `0 4px 24px ${selected.accentGlow}` : 'none',
-                        }}
-                    >
-                        {loading ? (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <i className="fas fa-spinner fa-spin" />
-                                CREATING...
-                            </span>
-                        ) : (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                CONFIRM
-                            </span>
-                        )}
-                    </button>
+                    {/* Action buttons row on mobile */}
+                    <div style={{
+                        display: 'flex',
+                        width: isMobile ? '100%' : 'auto',
+                        justifyContent: 'space-between',
+                        gap: 12,
+                        flex: isMobile ? '1' : 'none',
+                    }}>
+                        {/* Return action */}
+                        <button
+                            onClick={() => router.visit('/dashboard')}
+                            className="bottom-action-label opacity-70 hover:opacity-100"
+                            style={{
+                                background: 'rgba(0,0,0,0.5)',
+                                border: '1.5px solid rgba(255,255,255,0.15)',
+                                padding: isMobile ? '10px 16px' : '8px 16px',
+                                borderRadius: '4px',
+                                fontFamily: 'inherit',
+                                flex: isMobile ? 1 : 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 8,
+                            }}
+                        >
+                            <span className="action-icon" style={{ borderColor: 'currentColor', color: 'rgba(255,255,255,0.6)' }}>&lt;</span>
+                            <span style={{ color: '#fff', fontSize: isMobile ? 11 : 12 }}>DASHBOARD</span>
+                        </button>
+
+                        {/* Confirm action */}
+                        <button
+                            className="confirm-btn"
+                            onClick={handleStartGame}
+                            disabled={!characterName || loading}
+                            style={{
+                                background: loading
+                                    ? 'rgba(255,255,255,0.1)'
+                                    : `linear-gradient(135deg, ${selected.accent}cc, ${selected.accent})`,
+                                color: selectedGenreId === 'fantasy' ? '#1a0e00' : '#fff',
+                                boxShadow: !loading && characterName ? `0 4px 24px ${selected.accentGlow}` : 'none',
+                                flex: isMobile ? 1 : 'none',
+                                padding: isMobile ? '10px 20px' : '10px 32px',
+                                fontSize: isMobile ? 11 : 12,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            {loading ? (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <i className="fas fa-spinner fa-spin" />
+                                    CREATING...
+                                </span>
+                            ) : (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    CONFIRM
+                                </span>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </div>
         </>

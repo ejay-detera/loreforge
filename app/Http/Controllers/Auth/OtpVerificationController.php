@@ -89,7 +89,9 @@ class OtpVerificationController extends Controller
             }
 
             // Mark email as verified
-            $user->markEmailAsVerified();
+            if ($user->markEmailAsVerified()) {
+                event(new \Illuminate\Auth\Events\Verified($user));
+            }
             
             // Clear the session
             session()->forget('otp_token');

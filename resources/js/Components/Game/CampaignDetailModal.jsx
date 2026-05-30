@@ -148,7 +148,7 @@ const CampaignDetailModal = ({ campaignId, isOpen, onClose }) => {
 
                     {/* Stats bar */}
                     {campaign && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5 px-6 py-4 border-b border-white/10 shrink-0 bg-black/30">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 px-4 py-3 sm:px-6 sm:py-4 border-b border-white/10 shrink-0 bg-black/30">
                             <div className="bg-white/[0.03] border border-white/10 rounded-[10px] p-3 flex flex-col gap-1">
                                 <span className="text-[9px] uppercase tracking-[0.15em] text-white/30">Outcome</span>
                                 <span className="text-sm font-bold truncate" style={{ color: outcomeColor }}>
@@ -294,41 +294,41 @@ const CampaignDetailModal = ({ campaignId, isOpen, onClose }) => {
 
                     {/* Footer / Replay Form */}
                     {showReplayForm ? (
-                        <div className="px-6 py-3.5 border-t border-white/10 flex justify-between items-center bg-black/30 shrink-0">
-                            <form onSubmit={handleReplay} className="flex flex-1 items-center gap-3">
+                        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-white/10 flex justify-between items-center bg-black/30 shrink-0">
+                            <form onSubmit={handleReplay} className="flex flex-wrap flex-1 items-center gap-2 sm:gap-3">
                                 <span className="text-[11px] font-bold text-white/60 uppercase tracking-widest hidden sm:block">Character Name:</span>
                                 <input
                                     type="text"
                                     value={replayName}
                                     onChange={(e) => setReplayName(e.target.value)}
-                                    placeholder="Enter your hero's name"
-                                    className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-[var(--acc)] flex-1 max-w-[250px]"
+                                    placeholder="Enter name"
+                                    className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm text-white focus:outline-none focus:border-[var(--acc)] flex-1 min-w-[120px] max-w-[250px]"
                                     autoFocus
                                 />
                                 <button
                                     type="submit"
                                     disabled={startingReplay}
-                                    className="px-[22px] py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] font-bold transition-all duration-200 bg-[var(--acc-20)] border border-[var(--acc-40)] text-[var(--acc)] hover:bg-[var(--acc-30)] disabled:opacity-50 flex items-center gap-2"
+                                    className="px-[16px] py-[8px] sm:px-[22px] sm:py-[9px] rounded-[10px] text-[10px] sm:text-[11px] uppercase tracking-[0.15em] font-bold transition-all duration-200 bg-[var(--acc-20)] border border-[var(--acc-40)] text-[var(--acc)] hover:bg-[var(--acc-30)] disabled:opacity-50 flex items-center gap-2"
                                 >
                                     {startingReplay ? <FontAwesomeIcon icon={faSpinner} className="animate-spin" /> : <FontAwesomeIcon icon={faPlay} />}
-                                    Start Replay
+                                    Replay
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setShowReplayForm(false)}
-                                    className="px-4 py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] font-bold text-white/50 hover:text-white hover:bg-white/5 transition-all ml-auto"
+                                    className="px-3 py-[8px] rounded-[10px] text-[10px] sm:text-[11px] uppercase tracking-[0.15em] font-bold text-white/50 hover:text-white hover:bg-white/5 transition-all"
                                 >
                                     Cancel
                                 </button>
                             </form>
                         </div>
                     ) : (
-                        <div className="px-6 py-3.5 border-t border-white/10 flex justify-between items-center bg-black/30 shrink-0">
+                        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-white/10 flex flex-wrap gap-2.5 justify-between items-center bg-black/30 shrink-0">
                             <div>
                                 {campaign && (
                                     <button
                                         onClick={() => setShowReplayForm(true)}
-                                        className="px-[18px] py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] font-bold transition-all duration-200 bg-[var(--acc-20)] border border-[var(--acc-40)] text-[var(--acc)] hover:bg-[var(--acc-30)] flex items-center gap-2"
+                                        className="px-[14px] py-[8px] sm:px-[18px] sm:py-[9px] rounded-[10px] text-[10px] sm:text-[11px] uppercase tracking-[0.15em] font-bold transition-all duration-200 bg-[var(--acc-20)] border border-[var(--acc-40)] text-[var(--acc)] hover:bg-[var(--acc-30)] flex items-center gap-2"
                                     >
                                         <FontAwesomeIcon icon={faPlay} />
                                         Replay Campaign
@@ -336,7 +336,7 @@ const CampaignDetailModal = ({ campaignId, isOpen, onClose }) => {
                                 )}
                             </div>
                             <button
-                                className="px-[22px] py-[9px] rounded-[10px] text-[11px] uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 bg-white/[0.06] border border-white/[0.12] text-white/70 hover:bg-white/[0.12] hover:text-white font-bold"
+                                className="px-[16px] py-[8px] sm:px-[22px] sm:py-[9px] rounded-[10px] text-[10px] sm:text-[11px] uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 bg-white/[0.06] border border-white/[0.12] text-white/70 hover:bg-white/[0.12] hover:text-white font-bold"
                                 onClick={onClose}
                             >
                                 Close

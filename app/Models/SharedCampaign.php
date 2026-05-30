@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SharedCampaign extends Model
 {
@@ -26,5 +27,15 @@ class SharedCampaign extends Model
     public function sharedByUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'shared_by');
+    }
+
+    public function ratings(): HasMany
+    {
+        return $this->hasMany(CampaignRating::class, 'campaign_id');
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(CampaignComment::class, 'campaign_id');
     }
 }

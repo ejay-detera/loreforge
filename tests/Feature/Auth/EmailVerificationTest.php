@@ -28,31 +28,44 @@ class EmailVerificationTest extends TestCase
 
         Event::fake();
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addMinutes(60),
-            ['id' => $user->id, 'hash' => sha1($user->email)]
-        );
+        // Simulate OTP setup in session
+        $otp = '123456';
+        $token = \Illuminate\Support\Facades\Crypt::encrypt([
+            'otp' => $otp,
+            'timestamp' => now()->timestamp,
+            'email' => $user->email
+        ]);
 
-        $response = $this->actingAs($user)->get($verificationUrl);
+        $response = $this->actingAs($user)
+            ->withSession(['otp_token' => $token])
+            ->post('/verify-email/otp', [
+                'otp' => $otp,
+            ]);
 
         Event::assertDispatched(Verified::class);
         $this->assertTrue($user->fresh()->hasVerifiedEmail());
-        $response->assertRedirect(route('dashboard', absolute: false).'?verified=1');
+        $response->assertRedirect(route('dashboard', absolute: false));
     }
 
-    public function test_email_is_not_verified_with_invalid_hash(): void
+    public function test_email_is_not_verified_with_invalid_otp(): void
     {
         $user = User::factory()->unverified()->create();
 
-        $verificationUrl = URL::temporarySignedRoute(
-            'verification.verify',
-            now()->addMinutes(60),
-            ['id' => $user->id, 'hash' => sha1('wrong-email')]
-        );
+        // Simulate OTP setup in session
+        $otp = '123456';
+        $token = \Illuminate\Support\Facades\Crypt::encrypt([
+            'otp' => $otp,
+            'timestamp' => now()->timestamp,
+            'email' => $user->email
+        ]);
 
-        $this->actingAs($user)->get($verificationUrl);
+        $response = $this->actingAs($user)
+            ->withSession(['otp_token' => $token])
+            ->post('/verify-email/otp', [
+                'otp' => '654321', // wrong OTP
+            ]);
 
         $this->assertFalse($user->fresh()->hasVerifiedEmail());
+        $response->assertSessionHasErrors('otp');
     }
 }
