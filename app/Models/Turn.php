@@ -11,6 +11,7 @@ class Turn extends Model
         'session_id',
         'batch_id',
         'turn_number',
+        'enemy_name',
         'story_text',
         'choices',
         'outcomes',

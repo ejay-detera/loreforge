@@ -197,6 +197,7 @@ class GameSessionController extends Controller
                         'session_id' => $session->id,
                         'batch_id' => $turnBatch->id,
                         'turn_number' => $turnData['turn_number'],
+                        'enemy_name' => $turnData['enemy_name'],
                         'story_text' => $turnData['story_text'],
                         'choices' => $turnData['choices'],
                         'outcomes' => $turnData['outcomes'],
@@ -288,16 +289,33 @@ class GameSessionController extends Controller
 
                 // Force values if Gemini hallucinated 0
                 $choiceLower = strtolower($validated['choice']);
-                $isDodgeAction = str_contains($choiceLower, 'dodge')
+                $isAttackAction = str_contains($choiceLower, 'attack')
+                    || str_contains($choiceLower, 'melee')
+                    || str_contains($choiceLower, 'strike')
+                    || str_contains($choiceLower, 'slash')
+                    || str_contains($choiceLower, 'cut')
+                    || str_contains($choiceLower, 'thrust')
+                    || str_contains($choiceLower, 'assault')
+                    || str_contains($choiceLower, 'smash')
+                    || str_contains($choiceLower, 'bash')
+                    || str_contains($choiceLower, 'charge')
+                    || str_contains($choiceLower, 'lunge');
+
+                $isDodgeAction = !$isAttackAction && (
+                    str_contains($choiceLower, 'dodge')
                     || str_contains($choiceLower, 'evade')
                     || str_contains($choiceLower, 'roll')
                     || str_contains($choiceLower, 'sidestep')
                     || str_contains($choiceLower, 'parry')
-                    || str_contains($choiceLower, 'counter');
-                $isScanAction = str_contains($choiceLower, 'scan')
+                    || str_contains($choiceLower, 'counter')
+                );
+
+                $isScanAction = !$isAttackAction && (
+                    str_contains($choiceLower, 'scan')
                     || str_contains($choiceLower, 'analyze')
                     || str_contains($choiceLower, 'analyse')
-                    || str_contains($choiceLower, 'inspect');
+                    || str_contains($choiceLower, 'inspect')
+                );
 
                 if ($isDodgeAction) {
                     $healthChange = min(0, $healthChange);

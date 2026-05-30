@@ -212,8 +212,8 @@ export default function WhyLoreForge() {
 
   const features = [
     { icon: 'fas fa-infinity', title: 'Infinite Worlds', description: 'Explore limitless procedurally generated realms — no two adventures are ever the same.', badge: 'BOUNDLESS EXPLORATION', accent: '#10b981', accentGlow: 'rgba(16,185,129,0.32)', accentDim: 'rgba(16,185,129,0.16)', gradFrom: '#10b981', gradTo: '#059669' },
-    { icon: 'fas fa-users', title: 'Multiplayer', description: 'Join forces with adventurers from across the world and write your legend together.', badge: 'UP TO 8 PLAYERS', accent: '#f5c842', accentGlow: 'rgba(245,200,66,0.32)', accentDim: 'rgba(245,200,66,0.16)', gradFrom: '#f5c842', gradTo: '#d4920d' },
-    { icon: 'fas fa-code', title: 'Mod Support', description: 'Create, share, and install custom content — shape the world entirely on your own terms.', badge: 'OPEN MODDING API', accent: '#3b9eff', accentGlow: 'rgba(59,158,255,0.32)', accentDim: 'rgba(59,158,255,0.16)', gradFrom: '#3b9eff', gradTo: '#1a6fcc' },
+    { icon: 'fas fa-scroll', title: 'Community Stories', description: 'Browse, rate, and replay epic campaigns shared by other players. Find inspiration or forge a legend of your own.', badge: 'THOUSANDS OF TALES', accent: '#f5c842', accentGlow: 'rgba(245,200,66,0.32)', accentDim: 'rgba(245,200,66,0.16)', gradFrom: '#f5c842', gradTo: '#d4920d' },
+    { icon: 'fas fa-book-open', title: 'Campaign History', description: 'Every adventure you play is preserved. Relive your journey turn by turn and see how your legend unfolded.', badge: 'FULL TURN REPLAY', accent: '#3b9eff', accentGlow: 'rgba(59,158,255,0.32)', accentDim: 'rgba(59,158,255,0.16)', gradFrom: '#3b9eff', gradTo: '#1a6fcc' },
   ];
 
   return (

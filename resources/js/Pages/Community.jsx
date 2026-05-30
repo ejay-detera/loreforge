@@ -3,7 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faTrophy, faSkull, faScroll, faClock } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faTrophy, faSkull, faScroll, faClock, faStar } from '@fortawesome/free-solid-svg-icons';
 import CampaignDetailModal from '@/Components/Game/CampaignDetailModal';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -177,9 +177,17 @@ export default function Community() {
                                                 <FontAwesomeIcon icon={isVictory ? faTrophy : faSkull} />
                                                 {isVictory ? 'Victory' : 'Defeat'}
                                             </span>
-                                            <span className="text-xs text-white/40 font-bold uppercase tracking-wider">
-                                                {camp.turn_count} Turns
-                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                {camp.avg_rating != null && (
+                                                    <span className="flex items-center gap-1 text-xs text-amber-400 font-bold">
+                                                        <FontAwesomeIcon icon={faStar} className="text-[10px]" />
+                                                        {camp.avg_rating}
+                                                    </span>
+                                                )}
+                                                <span className="text-xs text-white/40 font-bold uppercase tracking-wider">
+                                                    {camp.turn_count} Turns
+                                                </span>
+                                            </div>
                                         </div>
                                     </motion.div>
                                 );

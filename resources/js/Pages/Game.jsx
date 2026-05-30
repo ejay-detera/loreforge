@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { router } from '@inertiajs/react';
 import useGame from '@/hooks/useGame';
 import GenreContainer, {
@@ -13,6 +13,30 @@ import TypewriterText from '@/Components/Game/TypewriterText';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faExclamationTriangle, faTrophy, faSkull, faPlus, faBolt } from '@fortawesome/free-solid-svg-icons';
 import SoundtrackPlayer from '@/Components/Game/SoundtrackPlayer';
+
+/* ── Enemy name to Sprite filename map ─────────────────────────────────── */
+const ENEMY_NAME_TO_SPRITE_MAP = {
+    // Fantasy
+    'goblin fire thrower': 'Goblin_Fire.gif',
+    'goblin demolitionist': 'Goblin_tnt.gif',
+    'skeleton archer': 'Skeleton_Archer.png',
+    'flaming skull': 'Skeleton_Flaming Skull.png',
+    'skeleton king': 'Skeleton_King.png',
+    'armored skeleton spearman': 'Skeleton_Spearman Armored.png',
+    'armored skeleton swordsman': 'Skeleton_Swordman Armored.png',
+    
+    // Horror
+    'eldritch boss': 'Eldtrich_boss.png',
+    'eldritch guardian': 'Eldtrich_guardian.png',
+    'eldritch hunter': 'Eldtrich_hunter.png',
+    'eldritch minion': 'Eldtrich_minion.png',
+
+    // Sci-fi
+    'robot boss': 'Robot_Boss.gif',
+    'robot guardian': 'Robot_Guardian.gif',
+    'robot pawn': 'Robot_Pawn.gif',
+};
+
 
 
 /* ─── Main component ─────────────────────────────────────────────────── */
@@ -141,10 +165,16 @@ const Game = () => {
         ],
     };
 
-    const enemySpriteList = enemySprites[genre] || enemySprites.fantasy;
+    const enemySpriteList = useMemo(() => enemySprites[genre] || enemySprites.fantasy, [genre]);
 
     const matchEnemySprite = (enemyName, list) => {
         if (!enemyName) return null;
+        
+        const normalizedName = String(enemyName).toLowerCase().trim();
+        if (ENEMY_NAME_TO_SPRITE_MAP[normalizedName]) {
+            return ENEMY_NAME_TO_SPRITE_MAP[normalizedName];
+        }
+
         const normalize = (value) => String(value)
             .toLowerCase()
             .replace(/\.(gif|png|webp|jpg|jpeg)$/i, '')
@@ -223,15 +253,18 @@ const Game = () => {
         setShowScanOverlay(false);
 
         const choiceStr = String(choiceKey).toLowerCase();
-        const isDodgeAction = ['dodge', 'evade', 'roll', 'sidestep', 'counter', 'parry'].some(term => choiceStr.includes(term));
-        const isScanAction = ['scan', 'analyze', 'analyse', 'inspect'].some(term => choiceStr.includes(term));
+        const isAttackAction = ['attack', 'melee', 'strike', 'slash', 'cut', 'thrust', 'assault', 'smash', 'bash', 'charge', 'lunge'].some(term => choiceStr.includes(term));
+        const isDodgeAction = !isAttackAction && ['dodge', 'evade', 'roll', 'sidestep', 'counter', 'parry'].some(term => choiceStr.includes(term));
+        const isScanAction = !isAttackAction && ['scan', 'analyze', 'analyse', 'inspect'].some(term => choiceStr.includes(term));
         let actionType = outcome.action_type ?? 'attack';
         let actionResult = outcome.action_result ?? 'neutral';
         let healthChange = outcome.health_change ?? 0;
         let manaChange = outcome.mana_change ?? 0;
         let enemyDmg = outcome.enemy_hp_change ?? 0;
 
-        if (isDodgeAction) {
+        if (isAttackAction) {
+            actionType = 'attack';
+        } else if (isDodgeAction) {
             actionType = 'utility';
             actionResult = actionResult === 'fail' ? 'fail' : 'success';
             healthChange = Math.min(0, healthChange);
@@ -406,8 +439,36 @@ const Game = () => {
                 await resolveChoice(choiceKey);
             }, 1400);
 
+        } else if (actionType === 'magic') {
+            setBattlePhase('player-magic');
+
+            setTimeout(() => {
+                if (enemyDmg !== 0) {
+                    setShowEnemyDmg({ value: enemyDmg, color: '#ff4444' });
+                    setEnemyHP(prev => Math.max(0, prev + enemyDmg));
+                }
+            }, 350);
+
+            setTimeout(() => {
+                if (playerTakesDamage) {
+                    setBattlePhase('enemy-attack');
+                    setTimeout(() => {
+                        setShowPlayerDmg({ value: healthChange, color: '#ff6666' });
+                    }, 350);
+                }
+            }, 900);
+
+            const totalDuration = playerTakesDamage ? 1800 : 900;
+            setTimeout(async () => {
+                setBattlePhase(null);
+                setShowEnemyDmg(null);
+                setShowPlayerDmg(null);
+                setPendingOutcome(null);
+                await resolveChoice(choiceKey);
+            }, totalDuration);
+
         } else {
-            // Default: attack / magic — use existing slash + impact effects
+            // Default: attack — use existing slash + impact effects
             setBattlePhase('player-attack');
 
             setTimeout(() => {
@@ -707,7 +768,7 @@ const Game = () => {
 
                 {/* ── ENEMY SPRITE ── */}
                 <div
-                    className={`absolute z-10 ${spritesLoaded ? 'slide-in-right bounce-in' : ''} ${battlePhase === 'player-attack' ? 'battle-enemy-hit' : ''} ${battlePhase === 'enemy-attack' ? 'battle-enemy-attack' : ''}`}
+                    className={`absolute z-10 ${spritesLoaded ? 'slide-in-right bounce-in' : ''} ${(battlePhase === 'player-attack' || battlePhase === 'player-magic') ? 'battle-enemy-hit' : ''} ${battlePhase === 'enemy-attack' ? 'battle-enemy-attack' : ''}`}
                     style={{
                         bottom: 'calc(45% - 18px)',
                         right: enemyRight,
@@ -783,9 +844,42 @@ const Game = () => {
                     <div className="battle-scan-overlay" key={`scan-${currentTurn}-${Date.now()}`} />
                 )}
 
+                {/* ── MAGIC PROJECTILE EFFECT ── */}
+                {battlePhase === 'player-magic' && (
+                    <div
+                        className="battle-projectile-container"
+                        style={{
+                            position: 'absolute',
+                            inset: 0,
+                            pointerEvents: 'none',
+                            zIndex: 25,
+                            '--player-x': `calc(${playerLeft} + ${playerSpriteSize} / 2)`,
+                            '--player-y': '60%',
+                            '--enemy-x': `calc(100% - ${enemyRight} - ${enemySpriteSize} / 2)`,
+                            '--enemy-y': '45%',
+                        }}
+                    >
+                        {genre === 'fantasy' && (
+                            <div className="battle-magic-fireball" />
+                        )}
+                        {genre === 'scifi' && (
+                            <div className="battle-magic-laser-wrapper">
+                                <div className="battle-magic-laser-charge" />
+                                <div className="battle-magic-laser-beam">
+                                    <div className="battle-magic-laser-core" />
+                                </div>
+                                <div className="battle-magic-laser-impact" />
+                            </div>
+                        )}
+                        {genre === 'horror' && (
+                            <div className="battle-magic-rocket" />
+                        )}
+                    </div>
+                )}
+
                 {/* ── PLAYER SPRITE ── */}
                 <div
-                    className={`absolute z-10 ${spritesLoaded ? 'slide-in-left bounce-in' : ''} ${battlePhase === 'player-attack' ? 'battle-player-attack' : ''} ${battlePhase === 'enemy-attack' ? 'battle-player-hit' : ''} ${battlePhase === 'player-heal' ? 'battle-player-heal' : ''} ${battlePhase === 'player-mana' ? 'battle-player-mana' : ''} ${battlePhase === 'player-dodge' ? 'battle-player-dodge' : ''} ${battlePhase === 'player-flee' ? 'battle-player-flee' : ''} ${battlePhase === 'player-defend' ? 'battle-player-defend' : ''}`}
+                    className={`absolute z-10 ${spritesLoaded ? 'slide-in-left bounce-in' : ''} ${battlePhase === 'player-attack' ? 'battle-player-attack' : ''} ${battlePhase === 'player-magic' ? 'battle-player-magic' : ''} ${battlePhase === 'enemy-attack' ? 'battle-player-hit' : ''} ${battlePhase === 'player-heal' ? 'battle-player-heal' : ''} ${battlePhase === 'player-mana' ? 'battle-player-mana' : ''} ${battlePhase === 'player-dodge' ? 'battle-player-dodge' : ''} ${battlePhase === 'player-flee' ? 'battle-player-flee' : ''} ${battlePhase === 'player-defend' ? 'battle-player-defend' : ''}`}
                     style={{
                         bottom: 'calc(10% - 30px)',
                         left: playerLeft,

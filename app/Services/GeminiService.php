@@ -396,14 +396,23 @@ Every outcome object MUST include:
 - "action_type": one of "attack", "magic", "defend", "heal", "utility", "flee", "item"
 - "action_result": one of "success", "fail", "neutral"
 
+STRICT CLASSIFICATION RULES:
+- If a choice name contains words like: attack, strike, slash, cut, thrust, melee, blow, assault, smash, bash, charge, lunge, or names an offensive weapon-based combat option, the action_type MUST be "attack". NEVER set it to "utility" or "scan".
+- If the action uses/fires magic, spells, mana, laser beams, rockets, or direct energy, and costs mana (negative mana_change), the action_type MUST be "magic".
+- "Scan", "Analyze", "Inspect", "Examine", "Assess" type choices → action_type MUST be "utility". NEVER name a melee or direct attack choice using scan/inspect/analyze language.
+- Only use "utility" for pure defensive/dodging/utility/movement options, not physical damage dealing melee/combat options.
+- Only use "item" for consuming inventory potions ("Healing Potion", "Mana Potion").
+
 These tell the frontend which visual effect to play:
-- attack/magic + success = slash effect on enemy
+- attack + success = physical slash effect on enemy
+- magic + success = genre-specific magic projectile animation (fantasy: fireball, sci-fi: laser beam, horror: green rocket arc)
 - item (heal) + success = green heal glow on player
 - item (mana) + success = blue mana glow on player
 - utility (dodge) + success = dodge sidestep animation
 - utility (dodge) + fail = player gets hit
 - flee + success = player escapes
 - flee + fail = player gets hit hard
+
 
 ═══════════════════════════════════════════════
 STRICT FORMATTING RULES
