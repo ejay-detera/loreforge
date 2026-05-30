@@ -280,6 +280,7 @@ const CampaignDetailModal = ({ campaignId, isOpen, onClose }) => {
     const [campaign, setCampaign] = useState(null);
     const [error, setError] = useState(null);
     const [activeTurn, setActiveTurn] = useState(0);
+    const [activeTab, setActiveTab] = useState('story');
 
     // Ratings state (live-updated after user rates)
     const [avgRating, setAvgRating] = useState(null);
@@ -297,6 +298,7 @@ const CampaignDetailModal = ({ campaignId, isOpen, onClose }) => {
         if (isOpen && campaignId) {
             fetchCampaign();
             setShowReplayForm(false);
+            setActiveTab('story');
         }
         if (!isOpen) {
             setCampaign(null);
@@ -305,6 +307,7 @@ const CampaignDetailModal = ({ campaignId, isOpen, onClose }) => {
             setAvgRating(null);
             setRatingsCount(0);
             setUserRating(null);
+            setActiveTab('story');
         }
     }, [isOpen, campaignId]);
 
@@ -503,79 +506,116 @@ const CampaignDetailModal = ({ campaignId, isOpen, onClose }) => {
                                     )}
                                 </div>
 
-                                {/* Main content area */}
-                                <div className="flex-1 min-w-0 overflow-y-auto custom-scrollbar relative px-1" ref={scrollRef}>
-                                    {turns.length > 0 && currentTurn ? (
-                                        <div className="p-4 sm:p-7 flex flex-col gap-5 max-w-3xl mx-auto">
-                                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-3">
-                                                <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[13px] font-black bg-[var(--acc)] text-black shrink-0">
-                                                    {currentTurn.turn_number}
-                                                </div>
-                                                <div className="text-[11px] uppercase tracking-[0.2em] text-[var(--acc)] font-bold">Turn {currentTurn.turn_number} of {turns.length}</div>
-                                            </div>
+                                {/* Main content container: manages layout of Story and Comments */}
+                                <div className="flex-1 flex flex-col min-w-0">
+                                    
+                                    {/* Mobile/Tablet Tab Navigation (hidden on lg screens) */}
+                                    <div className="flex border-b border-white/10 lg:hidden shrink-0 bg-white/[0.01]">
+                                        <button
+                                            onClick={() => setActiveTab('story')}
+                                            className={`flex-1 py-3.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 border-b-2 ${activeTab === 'story' ? 'text-[var(--acc)] border-[var(--acc)] bg-white/[0.02]' : 'text-white/40 border-transparent hover:text-white/70'}`}
+                                        >
+                                            Story Path
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('discussion')}
+                                            className={`flex-1 py-3.5 text-[11px] font-bold uppercase tracking-wider transition-all duration-200 border-b-2 ${activeTab === 'discussion' ? 'text-[var(--acc)] border-[var(--acc)] bg-white/[0.02]' : 'text-white/40 border-transparent hover:text-white/70'}`}
+                                        >
+                                            Discussion & Rating
+                                        </button>
+                                    </div>
 
-                                            <div className="bg-white/[0.03] border border-white/10 border-l-[3px] border-l-[var(--acc-40)] rounded-xl p-5 text-sm leading-[1.85] text-white/90">
-                                                {currentTurn.story_text}
-                                            </div>
-
-                                            {currentTurn.player_choice && (
-                                                <div className="bg-amber-400/[0.04] border border-amber-400/[0.12] rounded-xl p-4 sm:p-5 flex flex-col gap-2.5">
-                                                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400">
-                                                        <FontAwesomeIcon icon={faChevronRight} className="text-[8px]" />
-                                                        Player Choice
+                                    {/* Sub-container containing both columns */}
+                                    <div className="flex-1 flex min-h-0 overflow-hidden">
+                                        
+                                        {/* Story Narrative Column */}
+                                        <div
+                                            className={`flex-1 min-w-0 overflow-y-auto custom-scrollbar relative px-1 ${activeTab === 'story' ? 'block' : 'hidden lg:block'}`}
+                                            ref={scrollRef}
+                                        >
+                                            {turns.length > 0 && currentTurn ? (
+                                                <div className="p-4 sm:p-7 flex flex-col gap-5 max-w-3xl mx-auto">
+                                                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-3">
+                                                        <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[13px] font-black bg-[var(--acc)] text-black shrink-0">
+                                                            {currentTurn.turn_number}
+                                                        </div>
+                                                        <div className="text-[11px] uppercase tracking-[0.2em] text-[var(--acc)] font-bold">Turn {currentTurn.turn_number} of {turns.length}</div>
                                                     </div>
-                                                    <div className="text-[13px] text-white/90">{currentTurn.player_choice}</div>
-                                                    {currentTurn.outcomes?.[currentTurn.player_choice]?.story && (
-                                                        <div className="text-[12px] text-white/40 italic pt-2 border-t border-white/[0.06]">
-                                                            {currentTurn.outcomes[currentTurn.player_choice].story.toUpperCase()}
+
+                                                    <div className="bg-white/[0.03] border border-white/10 border-l-[3px] border-l-[var(--acc-40)] rounded-xl p-5 text-sm leading-[1.85] text-white/90">
+                                                        {currentTurn.story_text}
+                                                    </div>
+
+                                                    {currentTurn.player_choice && (
+                                                        <div className="bg-amber-400/[0.04] border border-amber-400/[0.12] rounded-xl p-4 sm:p-5 flex flex-col gap-2.5">
+                                                            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400">
+                                                                <FontAwesomeIcon icon={faChevronRight} className="text-[8px]" />
+                                                                Player Choice
+                                                            </div>
+                                                            <div className="text-[13px] text-white/90">{currentTurn.player_choice}</div>
+                                                            {currentTurn.outcomes?.[currentTurn.player_choice]?.story && (
+                                                                <div className="text-[12px] text-white/40 italic pt-2 border-t border-white/[0.06]">
+                                                                    {currentTurn.outcomes[currentTurn.player_choice].story.toUpperCase()}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     )}
+
+                                                    {activeTurn === turns.length - 1 && (
+                                                        <div
+                                                            className="rounded-2xl p-7 text-center flex flex-col items-center gap-2 animate-[co-fade_0.4s_ease_both_0.1s]"
+                                                            style={{
+                                                                borderColor: outcomeColor + '44',
+                                                                background: outcomeColor + '0d',
+                                                                borderWidth: '1px'
+                                                            }}
+                                                        >
+                                                            <div className="text-[36px] mb-1" style={{ color: outcomeColor }}>
+                                                                <FontAwesomeIcon icon={outcomeIcon} />
+                                                            </div>
+                                                            <div className="text-[22px] font-black tracking-[0.08em] text-white">{outcomeLabel}</div>
+                                                            <div className="text-xs text-white/40">
+                                                                {campaign.character_name}'s legend concluded at turn {campaign.turn_count}.
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Navigation */}
+                                                    <div className="flex items-center gap-2 pt-2">
+                                                        <button
+                                                            className="px-4 py-2 rounded-lg text-[11px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 bg-white/[0.05] border border-white/10 text-white/60 hover:not-disabled:bg-white/10 hover:not-disabled:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                                                            disabled={activeTurn === 0}
+                                                            onClick={() => { setActiveTurn(p => p - 1); scrollRef.current?.scrollTo(0, 0); }}
+                                                        >
+                                                            ← Prev
+                                                        </button>
+                                                        <span className="mx-auto text-[11px] text-white/30 font-bold">{activeTurn + 1} / {turns.length}</span>
+                                                        <button
+                                                            className={`px-5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 ${activeTurn < turns.length - 1 ? 'bg-[var(--acc-20)] border-[var(--acc-40)] text-[var(--acc)] hover:not-disabled:bg-[var(--acc-30)]' : 'bg-white/[0.05] border border-white/10 text-white/60 disabled:opacity-30 disabled:cursor-not-allowed'}`}
+                                                            disabled={activeTurn === turns.length - 1}
+                                                            onClick={() => { setActiveTurn(p => p + 1); scrollRef.current?.scrollTo(0, 0); }}
+                                                        >
+                                                            Next →
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex-1 flex flex-col items-center justify-center p-20 gap-4 opacity-30 italic text-sm">
+                                                    No path was recorded for this journey…
                                                 </div>
                                             )}
+                                        </div>
 
-                                            {activeTurn === turns.length - 1 && (
-                                                <div
-                                                    className="rounded-2xl p-7 text-center flex flex-col items-center gap-2 animate-[co-fade_0.4s_ease_both_0.1s]"
-                                                    style={{
-                                                        borderColor: outcomeColor + '44',
-                                                        background: outcomeColor + '0d',
-                                                        borderWidth: '1px'
-                                                    }}
-                                                >
-                                                    <div className="text-[36px] mb-1" style={{ color: outcomeColor }}>
-                                                        <FontAwesomeIcon icon={outcomeIcon} />
-                                                    </div>
-                                                    <div className="text-[22px] font-black tracking-[0.08em] text-white">{outcomeLabel}</div>
-                                                    <div className="text-xs text-white/40">
-                                                        {campaign.character_name}'s legend concluded at turn {campaign.turn_count}.
-                                                    </div>
-                                                </div>
-                                            )}
+                                        {/* Divider (visible on lg screens only) */}
+                                        <div className="hidden lg:block w-[1px] bg-white/10 shrink-0 h-full" />
 
-                                            {/* Navigation */}
-                                            <div className="flex items-center gap-2 pt-2">
-                                                <button
-                                                    className="px-4 py-2 rounded-lg text-[11px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 bg-white/[0.05] border border-white/10 text-white/60 hover:not-disabled:bg-white/10 hover:not-disabled:text-white disabled:opacity-30 disabled:cursor-not-allowed"
-                                                    disabled={activeTurn === 0}
-                                                    onClick={() => { setActiveTurn(p => p - 1); scrollRef.current?.scrollTo(0, 0); }}
-                                                >
-                                                    ← Prev
-                                                </button>
-                                                <span className="mx-auto text-[11px] text-white/30 font-bold">{activeTurn + 1} / {turns.length}</span>
-                                                <button
-                                                    className={`px-5 py-2 rounded-lg text-[11px] font-bold uppercase tracking-[0.15em] cursor-pointer transition-all duration-150 ${activeTurn < turns.length - 1 ? 'bg-[var(--acc-20)] border-[var(--acc-40)] text-[var(--acc)] hover:not-disabled:bg-[var(--acc-30)]' : 'bg-white/[0.05] border border-white/10 text-white/60 disabled:opacity-30 disabled:cursor-not-allowed'}`}
-                                                    disabled={activeTurn === turns.length - 1}
-                                                    onClick={() => { setActiveTurn(p => p + 1); scrollRef.current?.scrollTo(0, 0); }}
-                                                >
-                                                    Next →
-                                                </button>
-                                            </div>
-
-                                            {/* ── Rating & Comments ── */}
-                                            <div className="mt-4 flex flex-col gap-6">
-
+                                        {/* Discussion / Comments & Rating Column */}
+                                        <div
+                                            className={`w-full lg:w-[380px] shrink-0 overflow-y-auto custom-scrollbar p-5 sm:p-6 bg-[#07090f]/50 ${activeTab === 'discussion' ? 'block' : 'hidden lg:block'}`}
+                                        >
+                                            <div className="flex flex-col gap-6 max-w-md mx-auto">
                                                 {/* Rating */}
-                                                <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-5 flex flex-col gap-3">
+                                                <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-5 flex flex-col gap-3.5 shadow-md">
                                                     <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
                                                         <FontAwesomeIcon icon={faStar} style={{ color: accentHex }} />
                                                         Rate this Campaign
@@ -590,7 +630,7 @@ const CampaignDetailModal = ({ campaignId, isOpen, onClose }) => {
                                                 </div>
 
                                                 {/* Comments */}
-                                                <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-5 flex flex-col gap-3">
+                                                <div className="bg-white/[0.02] border border-white/[0.08] rounded-2xl p-5 flex flex-col gap-3.5 shadow-md">
                                                     <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">
                                                         <FontAwesomeIcon icon={faComments} style={{ color: accentHex }} />
                                                         Comments
@@ -603,11 +643,7 @@ const CampaignDetailModal = ({ campaignId, isOpen, onClose }) => {
                                                 </div>
                                             </div>
                                         </div>
-                                    ) : (
-                                        <div className="flex-1 flex flex-col items-center justify-center p-20 gap-4 opacity-30 italic text-sm">
-                                            No path was recorded for this journey…
-                                        </div>
-                                    )}
+                                    </div>
                                 </div>
                             </>
                         )}

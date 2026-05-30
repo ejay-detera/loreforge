@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Community() {
     const { auth } = usePage().props;
     const [activeGenre, setActiveGenre] = useState('all');
+    const [sortBy, setSortBy] = useState('recent');
     const [campaigns, setCampaigns] = useState([]);
     const [loading, setLoading] = useState(true);
     const [pagination, setPagination] = useState(null);
@@ -18,12 +19,12 @@ export default function Community() {
 
     useEffect(() => {
         fetchCampaigns();
-    }, [activeGenre, page]);
+    }, [activeGenre, sortBy, page]);
 
     const fetchCampaigns = async () => {
         setLoading(true);
         try {
-            const url = `/api/community?genre=${activeGenre}&page=${page}`;
+            const url = `/api/community?genre=${activeGenre}&sort=${sortBy}&page=${page}`;
             const res = await axios.get(url);
             if (res.data.success) {
                 setCampaigns(res.data.campaigns);
@@ -79,28 +80,48 @@ export default function Community() {
                     <p className="text-white/50">Explore legendary tales shared by other players and start your own adventure from their paths.</p>
                 </motion.div>
 
-                {/* Genre Tabs */}
-                <motion.div variants={itemVariants} className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-10">
-                    {['all', 'fantasy', 'horror', 'scifi'].map((genre) => (
-                        <button
-                            key={genre}
-                            onClick={() => { setActiveGenre(genre); setPage(1); }}
-                            className={`px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold uppercase tracking-[0.15em] transition-all duration-300 border relative overflow-hidden group ${
-                                activeGenre === genre
-                                    ? 'bg-white/10 text-white border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.1)]'
-                                    : 'bg-transparent text-white/40 border-transparent hover:text-white/80 hover:bg-white/5'
-                            }`}
+                {/* Filters and Sorting bar */}
+                <motion.div 
+                    variants={itemVariants} 
+                    className="flex flex-col md:flex-row justify-between items-center gap-4 mb-10 bg-white/[0.02] border border-white/10 rounded-2xl p-4 sm:p-5"
+                >
+                    {/* Genre Tabs */}
+                    <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                        {['all', 'fantasy', 'horror', 'scifi'].map((genre) => (
+                            <button
+                                key={genre}
+                                onClick={() => { setActiveGenre(genre); setPage(1); }}
+                                className={`px-5 py-2 rounded-full text-xs font-bold uppercase tracking-[0.15em] transition-all duration-300 border relative overflow-hidden group ${
+                                    activeGenre === genre
+                                        ? 'bg-white/10 text-white border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.1)]'
+                                        : 'bg-transparent text-white/40 border-transparent hover:text-white/80 hover:bg-white/5'
+                                }`}
+                            >
+                                <span className="relative z-10">{genre}</span>
+                                {activeGenre === genre && (
+                                    <motion.div 
+                                        layoutId="activeTab"
+                                        className="absolute inset-0 bg-white/5 z-0"
+                                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                    />
+                                )}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Sort Dropdown */}
+                    <div className="flex items-center gap-3 w-full md:w-auto justify-center md:justify-end border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
+                        <span className="text-[10px] sm:text-xs text-white/40 font-bold uppercase tracking-widest whitespace-nowrap">Sort By:</span>
+                        <select
+                            value={sortBy}
+                            onChange={(e) => { setSortBy(e.target.value); setPage(1); }}
+                            className="bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-white/30 cursor-pointer min-w-[160px] uppercase tracking-wider transition-all duration-200"
                         >
-                            <span className="relative z-10">{genre}</span>
-                            {activeGenre === genre && (
-                                <motion.div 
-                                    layoutId="activeTab"
-                                    className="absolute inset-0 bg-white/5 z-0"
-                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                />
-                            )}
-                        </button>
-                    ))}
+                            <option value="recent">Newest Shared</option>
+                            <option value="highest_rated">Highest Rated</option>
+                            <option value="most_popular">Most Popular</option>
+                        </select>
+                    </div>
                 </motion.div>
 
                 {/* Grid Content with AnimatePresence for smooth transitions */}
@@ -179,9 +200,9 @@ export default function Community() {
                                             </span>
                                             <div className="flex items-center gap-3">
                                                 {camp.avg_rating != null && (
-                                                    <span className="flex items-center gap-1 text-xs text-amber-400 font-bold">
+                                                    <span className="flex items-center gap-1 text-xs text-amber-400 font-bold" title={`${camp.ratings_count} ratings`}>
                                                         <FontAwesomeIcon icon={faStar} className="text-[10px]" />
-                                                        {camp.avg_rating}
+                                                        {camp.avg_rating} <span className="text-[10px] text-white/45 font-normal">({camp.ratings_count})</span>
                                                     </span>
                                                 )}
                                                 <span className="text-xs text-white/40 font-bold uppercase tracking-wider">

@@ -30,12 +30,13 @@ class CommunityController extends Controller
     public function index(Request $request)
     {
         $genre = $request->query('genre');
+        $sort  = $request->query('sort', 'recent');
 
         $query = SharedCampaign::with([
             'gameSession:id,character_name,genre,turn_count,outcome',
             'sharedByUser:id,username',
         ])->withAvg('ratings', 'rating')
-          ->withCount('ratings');
+          ->withCount(['ratings', 'comments']);
 
         if ($genre && $genre !== 'all') {
             $query->whereHas('gameSession', function ($q) use ($genre) {
@@ -43,7 +44,18 @@ class CommunityController extends Controller
             });
         }
 
-        $campaigns = $query->orderBy('shared_at', 'desc')->paginate(12);
+        if ($sort === 'highest_rated') {
+            $query->orderByRaw('ratings_avg_rating IS NULL')
+                  ->orderBy('ratings_avg_rating', 'desc')
+                  ->orderBy('shared_at', 'desc');
+        } elseif ($sort === 'most_popular') {
+            $query->orderByRaw('(ratings_count + comments_count) desc')
+                  ->orderBy('shared_at', 'desc');
+        } else {
+            $query->orderBy('shared_at', 'desc');
+        }
+
+        $campaigns = $query->paginate(12);
 
         $formatted = $campaigns->map(function ($campaign) {
             return [
