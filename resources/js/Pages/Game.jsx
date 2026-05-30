@@ -133,11 +133,36 @@ const Game = () => {
 
     const matchEnemySprite = (enemyName, list) => {
         if (!enemyName) return null;
-        const searchWords = enemyName.toLowerCase().split(/[\s_]+/);
-        return list.find(s => {
-            const spriteName = s.toLowerCase();
-            return searchWords.every(word => spriteName.includes(word));
+        const normalize = (value) => String(value)
+            .toLowerCase()
+            .replace(/\.(gif|png|webp|jpg|jpeg)$/i, '')
+            .replace(/eldritch/g, 'eldtrich')
+            .replace(/swordsman/g, 'swordman')
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim();
+
+        const enemyTokens = normalize(enemyName)
+            .split(' ')
+            .filter(word => word.length > 2 && !['the', 'and', 'with'].includes(word));
+
+        let bestMatch = null;
+        let bestScore = 0;
+
+        list.forEach(sprite => {
+            const spriteTokens = normalize(sprite).split(' ').filter(Boolean);
+            const score = enemyTokens.reduce((total, token) => (
+                spriteTokens.some(spriteToken => spriteToken.includes(token) || token.includes(spriteToken))
+                    ? total + 1
+                    : total
+            ), 0);
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = sprite;
+            }
         });
+
+        return bestScore > 0 ? bestMatch : null;
     };
 
     useEffect(() => {
@@ -185,14 +210,32 @@ const Game = () => {
         setShowActionText(null);
         setShowScanOverlay(false);
 
-        const actionType = outcome.action_type ?? 'attack';
-        const actionResult = outcome.action_result ?? 'neutral';
+        const choiceStr = String(choiceKey).toLowerCase();
+        const isDodgeAction = ['dodge', 'evade', 'roll', 'sidestep', 'counter', 'parry'].some(term => choiceStr.includes(term));
+        const isScanAction = ['scan', 'analyze', 'analyse', 'inspect'].some(term => choiceStr.includes(term));
+        let actionType = outcome.action_type ?? 'attack';
+        let actionResult = outcome.action_result ?? 'neutral';
         let healthChange = outcome.health_change ?? 0;
         let manaChange = outcome.mana_change ?? 0;
-        const enemyDmg = outcome.enemy_hp_change ?? 0;
+        let enemyDmg = outcome.enemy_hp_change ?? 0;
+
+        if (isDodgeAction) {
+            actionType = 'utility';
+            actionResult = actionResult === 'fail' ? 'fail' : 'success';
+            healthChange = Math.min(0, healthChange);
+            manaChange = 0;
+            if (choiceStr.includes('counter') && enemyDmg === 0) {
+                enemyDmg = -20;
+            }
+        } else if (isScanAction) {
+            actionType = 'utility';
+            actionResult = 'success';
+            healthChange = 0;
+            manaChange = 0;
+            enemyDmg = 0;
+        }
 
         // Force values if Gemini hallucinated 0
-        const choiceStr = String(choiceKey).toLowerCase();
         if (choiceStr.includes('healing potion') || choiceStr.includes('hp potion')) {
             healthChange = Math.max(25, healthChange);
         }
@@ -242,10 +285,7 @@ const Game = () => {
         } else if (actionType === 'utility') {
             // Dodge or Scan
             if (actionResult === 'success') {
-                const isDodge = choiceKey.toLowerCase().includes('dodge') || choiceKey.toLowerCase().includes('evade') || choiceKey.toLowerCase().includes('roll');
-                const isScan = choiceKey.toLowerCase().includes('scan') || choiceKey.toLowerCase().includes('analyze') || choiceKey.toLowerCase().includes('inspect');
-
-                if (isScan) {
+                if (isScanAction) {
                     setShowScanOverlay(true);
                     setTimeout(() => {
                         setShowActionText({ text: 'SCANNED!', color: '#00BFFF' });
@@ -261,14 +301,22 @@ const Game = () => {
                     // Dodge success
                     setBattlePhase('player-dodge');
                     setTimeout(() => {
-                        setShowActionText({ text: 'DODGED!', color: '#10b981' });
+                        setShowActionText({ text: choiceStr.includes('counter') ? 'COUNTER!' : 'DODGED!', color: '#10b981' });
                     }, 200);
+                    if (enemyDmg !== 0) {
+                        setTimeout(() => {
+                            setBattlePhase('player-attack');
+                            setShowEnemyDmg({ value: enemyDmg, color: '#ff4444' });
+                            setEnemyHP(prev => Math.max(0, prev + enemyDmg));
+                        }, 650);
+                    }
                     setTimeout(async () => {
                         setBattlePhase(null);
+                        setShowEnemyDmg(null);
                         setShowActionText(null);
                         setPendingOutcome(null);
                         await resolveChoice(choiceKey);
-                    }, 1200);
+                    }, enemyDmg !== 0 ? 1500 : 1200);
                 }
             } else {
                 // Dodge/utility failed — player takes damage
@@ -624,6 +672,7 @@ const Game = () => {
                     }}
                 >
                     <img
+                        key={`${genre}-${enemySprite}`}
                         src={`/Sprites/${genreFolder}/${enemySprite}`}
                         alt={apiEnemyName || fallbackEnemyName}
                         draggable={false}
@@ -838,7 +887,8 @@ const Game = () => {
                                     onClick={() => handleChoice(choiceKey)}
                                     disabled={loading || !!battlePhase}
                                     size="small"
-                                    className="text-[11px] leading-tight h-full w-full uppercase font-bold game-text"
+                                    className="px-1.5 text-[9px] leading-snug h-full w-full uppercase font-bold tracking-normal text-center break-words hyphens-auto game-text"
+                                    title={displayText}
                                 >
                                     {displayText}
                                 </GenreButton>

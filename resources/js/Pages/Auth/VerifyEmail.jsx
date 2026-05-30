@@ -167,6 +167,11 @@ export default function VerifyEmail({ status }) {
                                     A 6-digit verification code has been sent to your email. Check your inbox.
                                 </div>
                             )}
+                            {status === 'otp-send-failed' && (
+                                <div className="mb-4 md:mb-6 p-3 md:p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-sm text-red-400">
+                                    We created your account, but could not send the verification code. Check your SMTP settings, then send a new OTP code.
+                                </div>
+                            )}
 
                             {/* Form */}
                             {!showOtpInput ? (

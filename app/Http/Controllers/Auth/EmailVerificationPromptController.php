@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -46,7 +47,19 @@ class EmailVerificationPromptController extends Controller
         // Mark that OTP was sent recently (prevent multiple sends for 2 minutes)
         session(['otp_sent_recently' => true]);
 
-        Mail::to($user->email)->send(new OtpVerificationMail($otp, $user->username));
-        return Inertia::render('Auth/VerifyEmail', ['status' => 'otp-sent']);
+        try {
+            Mail::to($user->email)->send(new OtpVerificationMail($otp, $user->username));
+            return Inertia::render('Auth/VerifyEmail', ['status' => 'otp-sent']);
+        } catch (\Throwable $e) {
+            session()->forget('otp_sent_recently');
+
+            Log::error('LoreForge: Failed to send verification OTP', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return Inertia::render('Auth/VerifyEmail', ['status' => 'otp-send-failed']);
+        }
     }
 }

@@ -7,6 +7,7 @@ use App\Mail\OtpVerificationMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class OtpVerificationController extends Controller
@@ -35,7 +36,17 @@ class OtpVerificationController extends Controller
         // Store token in session for verification
         session(['otp_token' => $token]);
 
-        Mail::to($user->email)->send(new OtpVerificationMail($otp, $user->username));
+        try {
+            Mail::to($user->email)->send(new OtpVerificationMail($otp, $user->username));
+        } catch (\Throwable $e) {
+            Log::error('LoreForge: Failed to resend verification OTP', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('status', 'otp-send-failed');
+        }
 
         return back()->with('status', 'otp-sent');
     }

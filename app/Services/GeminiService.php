@@ -359,6 +359,7 @@ DODGE / FLEE / UTILITY RULES (STRICTLY ENFORCED)
 ═══════════════════════════════════════════════
 DODGE:
 - If the player chooses to dodge and it SUCCEEDS: health_change MUST be 0, enemy_hp_change MUST be 0, action_type = "utility", action_result = "success". Story should say the player evaded the attack.
+- If the player chooses a dodge-and-counter style action and it SUCCEEDS: health_change MUST be 0, enemy_hp_change MUST be -20 to -35, action_type = "utility", action_result = "success". Story should say the player dodged first, then counterattacked.
 - If the player chooses to dodge and it FAILS: apply normal damage to player, action_type = "utility", action_result = "fail". Story should say the dodge failed.
 
 FLEE:

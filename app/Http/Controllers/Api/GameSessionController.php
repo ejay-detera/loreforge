@@ -284,9 +284,33 @@ class GameSessionController extends Controller
 
                 $healthChange = $outcome['health_change'] ?? 0;
                 $manaChange = $outcome['mana_change'] ?? 0;
+                $enemyHpChange = $outcome['enemy_hp_change'] ?? 0;
 
                 // Force values if Gemini hallucinated 0
                 $choiceLower = strtolower($validated['choice']);
+                $isDodgeAction = str_contains($choiceLower, 'dodge')
+                    || str_contains($choiceLower, 'evade')
+                    || str_contains($choiceLower, 'roll')
+                    || str_contains($choiceLower, 'sidestep')
+                    || str_contains($choiceLower, 'parry')
+                    || str_contains($choiceLower, 'counter');
+                $isScanAction = str_contains($choiceLower, 'scan')
+                    || str_contains($choiceLower, 'analyze')
+                    || str_contains($choiceLower, 'analyse')
+                    || str_contains($choiceLower, 'inspect');
+
+                if ($isDodgeAction) {
+                    $healthChange = min(0, $healthChange);
+                    $manaChange = 0;
+                    if (str_contains($choiceLower, 'counter') && $enemyHpChange === 0) {
+                        $enemyHpChange = -20;
+                    }
+                } elseif ($isScanAction) {
+                    $healthChange = 0;
+                    $manaChange = 0;
+                    $enemyHpChange = 0;
+                }
+
                 if (str_contains($choiceLower, 'healing potion') || str_contains($choiceLower, 'hp potion')) {
                     $healthChange = max(25, $healthChange);
                 }
@@ -299,7 +323,7 @@ class GameSessionController extends Controller
                     'player_choice' => $validated['choice'],
                     'health_change' => $healthChange,
                     'mana_change' => $manaChange,
-                    'enemy_hp_change' => $outcome['enemy_hp_change'] ?? 0,
+                    'enemy_hp_change' => $enemyHpChange,
                     'is_resolved' => true,
                 ]);
 
@@ -373,8 +397,8 @@ class GameSessionController extends Controller
                     'session_id' => $session->id,
                     'turn_id' => $turn->id,
                     'choice' => $validated['choice'],
-                    'health_change' => $outcome['health_change'] ?? 0,
-                    'mana_change' => $outcome['mana_change'] ?? 0,
+                    'health_change' => $healthChange,
+                    'mana_change' => $manaChange,
                     'new_health' => $newHealth,
                     'new_mana' => $newMana,
                 ]);

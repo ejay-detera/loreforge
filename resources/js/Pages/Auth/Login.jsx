@@ -129,24 +129,24 @@ export default function Login({ status, canResetPassword, isBlocked }) {
     return (
         <>
             <Head title="Login" />
-            <div className="font-sans antialiased bg-bg-deep-navy text-text-primary-off-white min-h-screen overflow-x-hidden relative">
+            <div className="font-sans antialiased bg-bg-deep-navy text-text-primary-off-white h-screen overflow-hidden relative">
                 <ConstellationBackground />
 
                 {/* Home Button */}
-                <div className="fixed z-20 top-4 sm:top-6 md:top-8 left-4 sm:left-6 md:left-8">
+                <div className="fixed z-20 top-4 left-4 sm:left-6">
                     <Link href="/" className="inline-flex items-center group">
                         <div className="relative">
-                            <i className="fas fa-dragon text-xl sm:text-2xl text-accent-emerald-green mr-2 transform group-hover:scale-110 transition-transform duration-300"></i>
+                            <i className="fas fa-dragon text-xl text-accent-emerald-green mr-2 transform group-hover:scale-110 transition-transform duration-300"></i>
                             <div className="absolute -inset-1 bg-accent-emerald-green/20 rounded-full blur-sm group-hover:opacity-75 transition-opacity duration-300"></div>
                         </div>
-                        <div className="hidden sm:block text-xl sm:text-2xl font-bold text-accent-emerald-green group-hover:text-accent-hover-lighter-green transition-colors duration-300">
+                        <div className="hidden sm:block text-xl font-bold text-accent-emerald-green group-hover:text-accent-hover-lighter-green transition-colors duration-300">
                             LOREFORGE
                         </div>
                     </Link>
                 </div>
 
                 {/* Mobile Menu Button */}
-                <div className="fixed z-20 top-4 sm:top-6 md:top-8 right-4 sm:right-6 md:right-8 lg:hidden">
+                <div className="fixed z-20 top-4 right-4 sm:right-6 lg:hidden">
                     <button
                         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                         className="p-2 rounded-lg text-text-primary-off-white bg-surface-dark-charcoal/80 backdrop-blur-lg border border-border-subtle-dark/50 hover:bg-surface-dark-charcoal transition-colors duration-300"
@@ -172,28 +172,28 @@ export default function Login({ status, canResetPassword, isBlocked }) {
                 </div>
 
                 {/* Main Container */}
-                <div className="relative z-10 w-full min-h-screen flex items-center justify-center px-4 sm:px-6 md:px-8 py-20">
-                <div className="w-full max-w-6xl">
-                    <div className="bg-surface-dark-charcoal/80 backdrop-blur-lg rounded-2xl md:rounded-3xl overflow-hidden border border-border-subtle-dark/50 shadow-2xl">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px] md:min-h-[600px]">
+                <div className="relative z-10 w-full h-screen flex items-center justify-center px-4 sm:px-6 md:px-8 pt-16 pb-4">
+                <div className="w-full max-w-6xl max-h-full">
+                    <div className="bg-surface-dark-charcoal/80 backdrop-blur-lg rounded-2xl overflow-hidden border border-border-subtle-dark/50 shadow-2xl max-h-full">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-0 lg:h-[calc(100vh-5rem)] lg:max-h-[680px]">
                             {/* Left Panel - Login Form */}
-                            <div className="p-6 sm:p-8 md:p-12 flex flex-col justify-center">
+                            <div className="p-5 sm:p-6 lg:p-8 flex flex-col justify-center">
                                 <div className="transition-all duration-300 opacity-100 scale-100">
                                     {/* Logo */}
-                                    <div className="text-center mb-6 md:mb-8">
-                                        <div className="inline-flex items-center justify-center w-16 h-16 md:w-20 md:h-20 bg-gradient-to-br from-accent-emerald-green to-accent-hover-lighter-green rounded-2xl mb-4 md:mb-6 transform hover:scale-110 transition-transform duration-300">
-                                            <i className="fas fa-dragon text-2xl md:text-3xl text-white"></i>
+                                    <div className="text-center mb-5">
+                                        <div className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-accent-emerald-green to-accent-hover-lighter-green rounded-xl mb-3 transform hover:scale-110 transition-transform duration-300">
+                                            <i className="fas fa-dragon text-xl md:text-2xl text-white"></i>
                                         </div>
-                                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-text-primary-off-white mb-2 md:mb-3">
+                                        <h1 className="text-2xl md:text-3xl font-bold text-text-primary-off-white mb-1.5">
                                             Welcome Back
                                         </h1>
-                                        <p className="text-sm md:text-lg text-text-muted-cool-gray px-2">
+                                        <p className="text-sm text-text-muted-cool-gray px-2">
                                             Enter your credentials to access your account
                                         </p>
                                     </div>
 
                                     {status && (
-                                        <div className={`mb-4 md:mb-6 p-3 md:p-4 rounded-lg text-sm border ${
+                                        <div className={`mb-3 p-3 rounded-lg text-sm border ${
                                             isBlocked 
                                                 ? 'bg-red-500/20 border-red-500/50 text-red-400' 
                                                 : 'bg-accent-emerald-green/20 border-accent-emerald-green/50 text-accent-emerald-green'
@@ -204,7 +204,7 @@ export default function Login({ status, canResetPassword, isBlocked }) {
                                     )}
 
                                     {message && (
-                                        <div className={`mb-4 md:mb-6 p-3 md:p-4 rounded-lg text-sm ${
+                                        <div className={`mb-3 p-3 rounded-lg text-sm ${
                                             type === 'warning' 
                                                 ? 'bg-yellow-500/20 border border-yellow-500/50 text-yellow-400' 
                                                 : 'bg-accent-emerald-green/20 border border-accent-emerald-green/50 text-accent-emerald-green'
@@ -214,15 +214,15 @@ export default function Login({ status, canResetPassword, isBlocked }) {
                                     )}
 
                                     <form onSubmit={submit}>
-                                        <div className="mb-4 md:mb-6">
-                                            <label className="block text-sm font-medium text-text-primary-off-white mb-2">
+                                        <div className="mb-3">
+                                            <label className="block text-sm font-medium text-text-primary-off-white mb-1.5">
                                                 Email
                                             </label>
                                             <input
                                                 type="email"
                                                 value={data.email}
                                                 onChange={(e) => setData('email', e.target.value)}
-                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="w-full px-3 py-2.5 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 placeholder="Enter your email"
                                                 autoComplete="username"
                                                 required
@@ -233,15 +233,15 @@ export default function Login({ status, canResetPassword, isBlocked }) {
                                             )}
                                         </div>
 
-                                        <div className="mb-4 md:mb-6">
-                                            <label className="block text-sm font-medium text-text-primary-off-white mb-2">
+                                        <div className="mb-3">
+                                            <label className="block text-sm font-medium text-text-primary-off-white mb-1.5">
                                                 Password
                                             </label>
                                             <input
                                                 type="password"
                                                 value={data.password}
                                                 onChange={(e) => setData('password', e.target.value)}
-                                                className="w-full px-3 md:px-4 py-3 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="w-full px-3 py-2.5 bg-bg-deep-navy border border-border-subtle-dark rounded-lg text-text-primary-off-white placeholder-text-muted-cool-gray focus:border-accent-emerald-green focus:ring-2 focus:ring-accent-emerald-green/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 placeholder="Enter your password"
                                                 autoComplete="current-password"
                                                 required
@@ -252,7 +252,7 @@ export default function Login({ status, canResetPassword, isBlocked }) {
                                             )}
                                         </div>
 
-                                        <div className="mb-4 md:mb-6">
+                                        <div className="mb-3">
                                             <label className="flex items-center">
                                                 <input
                                                     type="checkbox"
@@ -270,7 +270,7 @@ export default function Login({ status, canResetPassword, isBlocked }) {
                                         <button
                                             type="submit"
                                             disabled={processing || isBlocked}
-                                            className={`w-full py-3 md:py-4 font-semibold rounded-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
+                                            className={`w-full py-2.5 font-semibold rounded-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${
                                                 isBlocked
                                                     ? 'bg-red-600 text-white cursor-not-allowed'
                                                     : 'bg-gradient-to-r from-accent-emerald-green to-accent-hover-lighter-green text-white hover:shadow-lg hover:shadow-accent-emerald-green/30'
@@ -296,7 +296,7 @@ export default function Login({ status, canResetPassword, isBlocked }) {
                                     </form>
 
                                     {canResetPassword && (
-                                        <div className="mt-4 md:mt-6 text-center">
+                                        <div className="mt-3 text-center">
                                             <Link
                                                 href={route('password.request')}
                                                 className="text-text-muted-cool-gray hover:text-accent-emerald-green transition-colors duration-300 text-sm"
@@ -317,12 +317,12 @@ export default function Login({ status, canResetPassword, isBlocked }) {
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-bg-deep-navy via-transparent to-bg-deep-navy/50"></div>
                                 
-                                <div className="absolute inset-0 flex flex-col justify-between p-6 md:p-12">
+                                <div className="absolute inset-0 flex flex-col justify-between p-8">
                                     <div className="text-center">
-                                        <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 md:mb-4">
+                                        <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
                                             Welcome Back
                                         </h2>
-                                        <p className="text-lg md:text-xl text-text-primary-off-white/90 max-w-md mx-auto">
+                                        <p className="text-base md:text-lg text-text-primary-off-white/90 max-w-md mx-auto">
                                             Continue your adventure where you left off
                                         </p>
                                     </div>
@@ -330,7 +330,7 @@ export default function Login({ status, canResetPassword, isBlocked }) {
                                     <div className="text-center">
                                         <Link
                                             href={route('register')}
-                                            className="group px-6 md:px-8 py-3 md:py-4 bg-gradient-to-r from-highlight-warm-gold to-yellow-500 text-bg-deep-navy font-bold rounded-xl md:rounded-2xl hover:shadow-xl hover:shadow-highlight-warm-gold/30 transition-all duration-300 hover:scale-105 transform inline-flex items-center"
+                                            className="group px-6 py-3 bg-gradient-to-r from-highlight-warm-gold to-yellow-500 text-bg-deep-navy font-bold rounded-xl hover:shadow-xl hover:shadow-highlight-warm-gold/30 transition-all duration-300 hover:scale-105 transform inline-flex items-center"
                                         >
                                             <i className="fas fa-user-plus mr-2 md:mr-3 group-hover:animate-bounce"></i>
                                             Create Account

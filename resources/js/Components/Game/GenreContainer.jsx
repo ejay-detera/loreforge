@@ -4,12 +4,13 @@ import React, { useEffect, useRef } from 'react';
 const GENRE_THEMES = {
     fantasy: {
         background: `
-            radial-gradient(circle at 15% 0%, #4A237A 0%, transparent 55%),
-            radial-gradient(circle at 85% 10%, #117A65 0%, transparent 50%),
-            linear-gradient(180deg, #120A20 0%, #0A1610 60%, #050A08 100%)
+            radial-gradient(ellipse 95% 55% at 50% 0%, rgba(201,168,76,0.18) 0%, transparent 62%),
+            radial-gradient(ellipse 65% 45% at 14% 24%, rgba(106,13,173,0.28) 0%, transparent 70%),
+            radial-gradient(ellipse 70% 50% at 88% 28%, rgba(45,122,79,0.24) 0%, transparent 72%),
+            linear-gradient(180deg, #2A124C 0%, #122A1F 58%, #06100A 100%)
         `,
-        shimmer: `radial-gradient(ellipse 70% 50% at 20% 20%, rgba(201,168,76,0.25) 0%, transparent 70%),
-                  radial-gradient(ellipse 50% 70% at 80% 65%, rgba(45,122,79,0.2) 0%, transparent 60%)`,
+        shimmer: `linear-gradient(120deg, transparent 0%, rgba(201,168,76,0.06) 36%, transparent 68%),
+                  radial-gradient(ellipse 80% 50% at 50% 78%, rgba(45,122,79,0.14) 0%, transparent 72%)`,
         groundGradient: 'linear-gradient(180deg, #0D2010 0%, #071009 100%)',
         skyGradient: 'linear-gradient(180deg, #1A0A3A 0%, #2D1B69 50%, #0D2010 100%)',
         fogColor: 'rgba(201,168,76,0.06)',
@@ -61,12 +62,13 @@ const GENRE_THEMES = {
     },
     scifi: {
         background: `
-            radial-gradient(ellipse at 50% -20%, #004A80 0%, transparent 65%),
-            radial-gradient(ellipse at 85% 40%, #001A33 0%, transparent 55%),
-            linear-gradient(180deg, #01040A 0%, #010A16 45%, #00121A 100%)
+            radial-gradient(ellipse 110% 58% at 50% -8%, rgba(0,191,255,0.2) 0%, transparent 62%),
+            linear-gradient(115deg, transparent 0%, rgba(0,128,255,0.08) 42%, transparent 68%),
+            radial-gradient(ellipse 72% 50% at 82% 34%, rgba(0,206,209,0.14) 0%, transparent 72%),
+            linear-gradient(180deg, #020714 0%, #031526 52%, #001019 100%)
         `,
-        shimmer: `radial-gradient(ellipse 70% 50% at 30% 30%, rgba(0,229,255,0.18) 0%, transparent 65%),
-                  radial-gradient(ellipse 50% 70% at 70% 60%, rgba(0,102,255,0.15) 0%, transparent 60%)`,
+        shimmer: `linear-gradient(90deg, transparent 0%, rgba(0,191,255,0.08) 48%, transparent 100%),
+                  radial-gradient(ellipse 80% 45% at 50% 80%, rgba(0,206,209,0.12) 0%, transparent 70%)`,
         groundGradient: 'linear-gradient(180deg, #00101A 0%, #000508 100%)',
         skyGradient: 'linear-gradient(180deg, #000010 0%, #000A2A 50%, #001020 100%)',
         fogColor: 'rgba(0,191,255,0.06)',
@@ -553,12 +555,12 @@ const ScifiGrid = () => (
             }
         `}</style>
         <div style={{
-            position: 'absolute', bottom: '-20%', left: '-30%', right: '-30%', height: '80%',
+            position: 'absolute', bottom: '-24%', left: '-30%', right: '-30%', height: '70%',
             backgroundImage: `
-                linear-gradient(rgba(0,191,255,0.4) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,191,255,0.4) 1px, transparent 1px)
+                linear-gradient(rgba(0,191,255,0.26) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,191,255,0.2) 1px, transparent 1px)
             `,
-            backgroundSize: '50px 50px',
+            backgroundSize: '56px 56px',
             animation: 'gridScroll 4s linear infinite, gridFade 3s ease-in-out infinite',
             transformOrigin: 'bottom center',
         }} />
@@ -587,11 +589,11 @@ const ScifiLasers = () => {
                 this.y = Math.random() * canvas.height * 0.7;
                 this.x = this.fromLeft ? -20 : canvas.width + 20;
                 this.targetX = this.fromLeft ? canvas.width + 20 : -20;
-                this.speed = 4 + Math.random() * 6;
+                this.speed = 3 + Math.random() * 4;
                 this.color = colors[Math.floor(Math.random() * colors.length)];
                 this.width = 1 + Math.random() * 1.5;
                 this.length = 60 + Math.random() * 120;
-                this.opacity = 0.6 + Math.random() * 0.4;
+                this.opacity = 0.22 + Math.random() * 0.28;
                 this.alive = true;
             }
             update() {
@@ -632,9 +634,9 @@ const ScifiLasers = () => {
         const loop = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const now = Date.now();
-            if (now >= nextSpawn && lasers.length < 8) {
+            if (now >= nextSpawn && lasers.length < 4) {
                 lasers.push(new Laser());
-                nextSpawn = now + 400 + Math.random() * 1200;
+                nextSpawn = now + 900 + Math.random() * 1700;
             }
             for (let i = lasers.length - 1; i >= 0; i--) {
                 lasers[i].update();
@@ -678,7 +680,7 @@ const ScifiDataStream = () => (
             <div key={i} style={{
                 position: 'absolute', top: 0, left: `${left}%`,
                 fontSize: '9px', fontFamily: 'monospace',
-                color: i % 3 === 0 ? 'rgba(0,255,200,0.5)' : 'rgba(0,191,255,0.4)',
+                color: i % 3 === 0 ? 'rgba(0,255,200,0.28)' : 'rgba(0,191,255,0.24)',
                 lineHeight: '14px', letterSpacing: '0px',
                 animation: `dataFall ${5 + i * 0.8}s linear infinite`,
                 animationDelay: `${i * 0.7}s`,
@@ -710,7 +712,7 @@ const ScifiDataStream = () => (
                 position: 'absolute', ...s,
                 width: '20px', height: '20px',
                 borderColor: 'rgba(0,191,255,0.4)',
-                opacity: 0.7,
+                opacity: 0.45,
             }} />
         ))}
     </div>
@@ -883,7 +885,7 @@ export const GenreButton = ({
             onClick={onClick}
             disabled={disabled}
             className={`
-                relative overflow-hidden rounded-lg font-bold tracking-wide
+                relative overflow-hidden rounded-lg font-bold tracking-normal
                 transition-all duration-200 transform
                 hover:scale-[1.03] active:scale-[0.97]
                 disabled:opacity-40 disabled:cursor-not-allowed
