@@ -84,6 +84,17 @@ Route::middleware(['auth', 'session.timeout', 'mfa'])->group(function () {
     Route::get('/community', function () {
         return Inertia::render('Community');
     })->name('community');
+    
+    Route::get('/characters', function () {
+        return Inertia::render('Characters');
+    })->name('characters');
+
+    Route::get('/achievements', [\App\Http\Controllers\AchievementController::class, 'index'])->name('achievements');
+    
+    // Admin route
+    Route::middleware(['admin'])->group(function () {
+        Route::get('/admin', [\App\Http\Controllers\AdminController::class, 'index'])->name('admin');
+    });
 });
 
 // Auth check endpoint for back button prevention

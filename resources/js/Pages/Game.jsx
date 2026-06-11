@@ -11,8 +11,10 @@ import GenreContainer, {
 import ExitConfirmationModal from '@/Components/Game/ExitConfirmationModal';
 import TypewriterText from '@/Components/Game/TypewriterText';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft, faExclamationTriangle, faTrophy, faSkull, faPlus, faBolt } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faExclamationTriangle, faTrophy, faSkull, faPlus, faBolt, faStar, faMedal } from '@fortawesome/free-solid-svg-icons';
 import SoundtrackPlayer from '@/Components/Game/SoundtrackPlayer';
+import ErrorBoundary from '@/Components/ErrorBoundary';
+import { motion, AnimatePresence } from 'framer-motion';
 
 /* ── Enemy name to Sprite filename map ─────────────────────────────────── */
 const ENEMY_NAME_TO_SPRITE_MAP = {
@@ -44,13 +46,15 @@ const Game = () => {
     const {
         currentTurnData,
         currentHP, currentMP, maxHP, maxMP,
+        enemyCurrentHP, setEnemyCurrentHP,
         inventory, currentTurn, maxTurns,
         isGameOver, isVictory, loading, error,
-        remainingTurns, session,
-        resolveChoice, resetGame, setError,
+        remainingTurns, session, achievements, setAchievements,
+        resolveChoice, resetGame, retryBatch, setError,
     } = useGame();
 
     const [enemyHP, setEnemyHP] = useState(120);
+    const [enemyMaxHP, setEnemyMaxHP] = useState(120);
     const [isMobile, setIsMobile] = useState(false);
     const [isTablet, setIsTablet] = useState(false);
 
@@ -87,7 +91,14 @@ const Game = () => {
         setTimeout(() => setSpritesLoaded(true), 100);
     }, []);
 
-    const ENEMY_MAX_HP = 120;
+    useEffect(() => {
+        if (enemyCurrentHP !== null && enemyCurrentHP !== undefined) {
+            setEnemyHP(enemyCurrentHP);
+            if (enemyCurrentHP > enemyMaxHP) {
+                setEnemyMaxHP(enemyCurrentHP);
+            }
+        }
+    }, [enemyCurrentHP]);
 
     useEffect(() => {
         if (session?.genre && !preservedGenre) {
@@ -223,7 +234,14 @@ const Game = () => {
                 const newSprite = matchEnemySprite(currentEnemyName, enemySpriteList) || enemySpriteList[0];
                 setEnemySprite(newSprite);
                 setPrevEnemyName(currentEnemyName);
-                setEnemyHP(ENEMY_MAX_HP);
+                
+                const ratio = currentTurn / Math.max(1, maxTurns);
+                let startingHP = 80;
+                if (ratio > 0.66) startingHP = 200;
+                else if (ratio > 0.33) startingHP = 120;
+                
+                setEnemyHP(startingHP);
+                setEnemyMaxHP(startingHP);
             }
 
             setLastProcessedTurn(currentTurnData.turn_number);
@@ -522,10 +540,10 @@ const Game = () => {
                         <h2 className="text-xl font-bold text-red-400 mb-2 game-text">Something went wrong</h2>
                         <p className="text-red-300 text-sm mb-6 game-text">{error}</p>
                         <div className="flex gap-3 justify-center">
-                            <GenreButton genre={genre} variant="outline" onClick={() => setError(null)} size="small">
-                                Dismiss
+                            <GenreButton genre={genre} onClick={retryBatch} size="small">
+                                Retry
                             </GenreButton>
-                            <GenreButton genre={genre} onClick={handleGoToNewGame} size="small">
+                            <GenreButton genre={genre} variant="outline" onClick={handleGoToNewGame} size="small">
                                 New Game
                             </GenreButton>
                         </div>
@@ -694,6 +712,42 @@ const Game = () => {
                 genre={genre}
             />
 
+            {/* --- Achievement Toast Notifications --- */}
+            <div className="fixed top-20 right-4 sm:right-8 z-[9999] flex flex-col gap-3 pointer-events-none">
+                <AnimatePresence>
+                    {achievements.map((ach) => (
+                        <motion.div
+                            key={ach.id}
+                            initial={{ opacity: 0, x: 50, scale: 0.9 }}
+                            animate={{ opacity: 1, x: 0, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
+                            className="pointer-events-auto bg-[#0a0f16]/95 backdrop-blur-md border border-[var(--acc-40)] shadow-[0_0_20px_var(--acc-20)] rounded-xl p-4 flex items-start gap-4 w-72"
+                            onAnimationComplete={() => {
+                                // Auto remove after 5s
+                                setTimeout(() => {
+                                    setAchievements(prev => prev.filter(a => a.id !== ach.id));
+                                }, 5000);
+                            }}
+                        >
+                            <div className="w-10 h-10 rounded-full bg-[var(--acc-20)] border border-[var(--acc-40)] flex items-center justify-center shrink-0">
+                                <FontAwesomeIcon icon={faMedal} className="text-[var(--acc)] text-lg" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-[10px] text-[var(--acc)] uppercase tracking-widest font-bold mb-0.5">Achievement Unlocked</span>
+                                <span className="text-white font-black leading-tight mb-1">{ach.name}</span>
+                                <span className="text-white/60 text-xs leading-snug">{ach.description}</span>
+                            </div>
+                            <button 
+                                onClick={() => setAchievements(prev => prev.filter(a => a.id !== ach.id))}
+                                className="absolute top-2 right-2 text-white/30 hover:text-white transition-colors"
+                            >
+                                &times;
+                            </button>
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+            </div>
+
             {/* Back button */}
             <div className="absolute top-3 right-3 md:top-4 md:right-4 z-30">
                 <GenreButton
@@ -750,7 +804,7 @@ const Game = () => {
                         <div className="flex items-center gap-1.5">
                             <span className="text-[9px] md:text-[10px] font-bold text-red-400 w-4 md:w-5 shrink-0 game-text">HP</span>
                             <div className={`flex-1 ${hpDamage ? 'hp-damage' : ''}`}>
-                                <GenreStatBar genre={genre} value={enemyHP} max={ENEMY_MAX_HP} type="enemyHp" />
+                                <GenreStatBar genre={genre} value={enemyHP} max={enemyMaxHP} type="enemyHp" />
                             </div>
                         </div>
                     </GenreCard>
@@ -1083,4 +1137,10 @@ const Game = () => {
     );
 };
 
-export default Game;
+const GameWithErrorBoundary = () => (
+    <ErrorBoundary>
+        <Game />
+    </ErrorBoundary>
+);
+
+export default GameWithErrorBoundary;

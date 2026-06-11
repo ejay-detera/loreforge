@@ -64,7 +64,15 @@ const HistoryDetailsModal = ({ sessionId, isOpen, onClose }) => {
                     setDetails({ ...details, is_public: false });
                 }
             } else {
-                const res = await axios.post(`/api/game/${sessionId}/share`);
+                const defaultTitle = `${details.character_name}'s Adventure`;
+                const title = window.prompt('Enter a title for your shared adventure:', defaultTitle);
+                
+                if (title === null) {
+                    setSharing(false);
+                    return; // User cancelled
+                }
+
+                const res = await axios.post(`/api/game/${sessionId}/share`, { title: title.trim() || defaultTitle });
                 if (res.data.success) {
                     setDetails({ ...details, is_public: true });
                 }

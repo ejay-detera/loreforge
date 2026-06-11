@@ -23,18 +23,30 @@ class GameSessionController extends Controller
     }
 
     /**
+     * Check if user has an active session.
+     */
+    public function getActiveSession(Request $request)
+    {
+        $session = GameSession::where('user_id', Auth::id())
+            ->where('status', 'active')
+            ->first();
+
+        return response()->json([
+            'hasActiveSession' => $session !== null,
+            'session' => $session ? [
+                'id' => $session->id,
+                'character_name' => $session->character_name,
+                'genre' => $session->genre,
+                'turn_count' => $session->turn_count,
+            ] : null,
+        ]);
+    }
+
+    /**
      * Start a new game session
      */
     public function start(Request $request)
     {
-        // Check if user is authenticated
-        if (!Auth::check()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated.'
-            ], 401);
-        }
-
         $validated = $request->validate([
             'genre' => 'required|string|in:fantasy,horror,scifi',
             'character_name' => 'required|string|max:255',
@@ -100,14 +112,6 @@ class GameSessionController extends Controller
      */
     public function generateBatch(Request $request, $sessionId)
     {
-        // Check if user is authenticated
-        if (!Auth::check()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated.'
-            ], 401);
-        }
-
         try {
             $session = GameSession::where('id', $sessionId)
                 ->where('user_id', Auth::id())
@@ -250,14 +254,6 @@ class GameSessionController extends Controller
      */
     public function resolveTurn(Request $request, $sessionId, $turnId)
     {
-        // Check if user is authenticated
-        if (!Auth::check()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated.'
-            ], 401);
-        }
-
         $validated = $request->validate([
             'choice' => 'required|string|max:255',
         ]);
@@ -286,49 +282,47 @@ class GameSessionController extends Controller
                 $healthChange = $outcome['health_change'] ?? 0;
                 $manaChange = $outcome['mana_change'] ?? 0;
                 $enemyHpChange = $outcome['enemy_hp_change'] ?? 0;
+                $actionType = $outcome['action_type'] ?? null;
 
-                // Force values if Gemini hallucinated 0
-                $choiceLower = strtolower($validated['choice']);
-                $isAttackAction = str_contains($choiceLower, 'attack')
-                    || str_contains($choiceLower, 'melee')
-                    || str_contains($choiceLower, 'strike')
-                    || str_contains($choiceLower, 'slash')
-                    || str_contains($choiceLower, 'cut')
-                    || str_contains($choiceLower, 'thrust')
-                    || str_contains($choiceLower, 'assault')
-                    || str_contains($choiceLower, 'smash')
-                    || str_contains($choiceLower, 'bash')
-                    || str_contains($choiceLower, 'charge')
-                    || str_contains($choiceLower, 'lunge');
-
-                $isDodgeAction = !$isAttackAction && (
-                    str_contains($choiceLower, 'dodge')
-                    || str_contains($choiceLower, 'evade')
-                    || str_contains($choiceLower, 'roll')
-                    || str_contains($choiceLower, 'sidestep')
-                    || str_contains($choiceLower, 'parry')
-                    || str_contains($choiceLower, 'counter')
-                );
-
-                $isScanAction = !$isAttackAction && (
-                    str_contains($choiceLower, 'scan')
-                    || str_contains($choiceLower, 'analyze')
-                    || str_contains($choiceLower, 'analyse')
-                    || str_contains($choiceLower, 'inspect')
-                );
-
-                if ($isDodgeAction) {
-                    $healthChange = min(0, $healthChange);
-                    $manaChange = 0;
-                    if (str_contains($choiceLower, 'counter') && $enemyHpChange === 0) {
-                        $enemyHpChange = -20;
-                    }
-                } elseif ($isScanAction) {
-                    $healthChange = 0;
-                    $manaChange = 0;
-                    $enemyHpChange = 0;
+                // Fallback for missing action_type
+                if (!$actionType) {
+                    $actionType = $enemyHpChange < 0 ? 'attack' : 'utility';
                 }
 
+                if ($actionType === 'utility') {
+                    $healthChange = min(0, $healthChange);
+                    $manaChange = 0;
+                }
+
+                // Server-side guard: offensive moves (attack/magic) must NEVER heal or restore mana
+                if (in_array($actionType, ['attack', 'magic'])) {
+                    $healthChange = min(0, $healthChange);  // Can only be 0 or negative
+                    $manaChange = min(0, $manaChange);       // Can only be 0 or negative (costs mana)
+                    $enemyHpChange = min(0, $enemyHpChange); // Must deal damage to enemy
+                }
+
+                // Keyword-based fallback: if the choice text looks offensive but action_type is wrong
+                $offensiveKeywords = ['fireball', 'fire ball', 'smite', 'holy', 'channel', 'blast', 'bolt', 
+                    'beam', 'spell', 'arcane', 'lightning', 'thunder', 'flame', 'inferno', 'slash', 
+                    'strike', 'attack', 'smash', 'charge', 'lunge', 'stab', 'punch', 'kick',
+                    'nova', 'surge', 'ray', 'laser', 'rocket'];
+                $choiceLower = strtolower($validated['choice']);
+                $looksOffensive = false;
+                foreach ($offensiveKeywords as $keyword) {
+                    if (str_contains($choiceLower, $keyword)) {
+                        $looksOffensive = true;
+                        break;
+                    }
+                }
+                if ($looksOffensive && !in_array($actionType, ['attack', 'magic'])) {
+                    // Force-correct: treat it as an attack/magic
+                    $actionType = $manaChange < 0 ? 'magic' : 'attack';
+                    $healthChange = min(0, $healthChange);
+                    $manaChange = min(0, $manaChange);
+                    $enemyHpChange = min(0, $enemyHpChange);
+                }
+
+                // Keep potion floor as server-side safety guard
                 if (str_contains($choiceLower, 'healing potion') || str_contains($choiceLower, 'hp potion')) {
                     $healthChange = max(25, $healthChange);
                 }
@@ -351,9 +345,28 @@ class GameSessionController extends Controller
                 $newMana = max(0, min($session->max_mana, 
                     $session->current_mana + $manaChange));
 
+                // Handle enemy HP tracking
+                $currentEnemyHp = $session->enemy_current_hp;
+                if (is_null($currentEnemyHp)) {
+                    $ratio = $session->turn_count / max(1, $session->max_turns);
+                    if ($ratio <= \App\Helpers\GameConstants::WEAK_ARC_END_RATIO) {
+                        $currentEnemyHp = 80;
+                    } elseif ($ratio <= \App\Helpers\GameConstants::MID_ARC_END_RATIO) {
+                        $currentEnemyHp = 120;
+                    } else {
+                        $currentEnemyHp = 200;
+                    }
+                }
+
+                $newEnemyHp = $currentEnemyHp + $enemyHpChange;
+                if ($newEnemyHp <= 0) {
+                    $newEnemyHp = null;
+                }
+
                 $session->update([
                     'current_health' => $newHealth,
                     'current_mana' => $newMana,
+                    'enemy_current_hp' => $newEnemyHp,
                     'turn_count' => $session->turn_count + 1,
                 ]);
 
@@ -421,6 +434,10 @@ class GameSessionController extends Controller
                     'new_mana' => $newMana,
                 ]);
 
+                // Evaluate achievements
+                $achievementService = new \App\Services\AchievementService();
+                $newAchievements = $achievementService->evaluate($session);
+
                 return response()->json([
                     'success' => true,
                     'session' => [
@@ -429,6 +446,7 @@ class GameSessionController extends Controller
                         'max_health' => $session->max_health,
                         'current_mana' => $newMana,
                         'max_mana' => $session->max_mana,
+                        'enemy_current_hp' => $newEnemyHp,
                         'turn_count' => $session->turn_count,
                         'max_turns' => $session->max_turns,
                         'status' => $session->status,
@@ -438,6 +456,7 @@ class GameSessionController extends Controller
                     ],
                     'inventory' => $updatedInventory,
                     'inventory_changes' => $inventoryChanges,
+                    'new_achievements' => $newAchievements,
                     'resolved_turn' => [
                         'id' => $turn->id,
                         'turn_number' => $turn->turn_number,
@@ -474,13 +493,6 @@ class GameSessionController extends Controller
      */
     public function getSessionDetails($sessionId)
     {
-        if (!Auth::check()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated.'
-            ], 401);
-        }
-
         try {
             $session = GameSession::where('user_id', Auth::id())
                 ->with(['turns' => function($q) {
@@ -505,10 +517,6 @@ class GameSessionController extends Controller
      */
     public function share(Request $request, $sessionId)
     {
-        if (!Auth::check()) {
-            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
-        }
-
         try {
             return DB::transaction(function () use ($sessionId) {
                 $session = GameSession::where('id', $sessionId)
@@ -536,9 +544,12 @@ class GameSessionController extends Controller
                     $previewText = 'A mysterious adventure...';
                 }
 
+                $title = $request->input('title', $session->character_name . "'s Adventure");
+
                 \App\Models\SharedCampaign::create([
                     'session_id' => $session->id,
                     'shared_by' => Auth::id(),
+                    'title' => $title,
                     'story_preview' => $previewText,
                     'shared_at' => now(),
                 ]);
@@ -558,10 +569,6 @@ class GameSessionController extends Controller
      */
     public function unshare(Request $request, $sessionId)
     {
-        if (!Auth::check()) {
-            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
-        }
-
         try {
             return DB::transaction(function () use ($sessionId) {
                 $session = GameSession::where('id', $sessionId)

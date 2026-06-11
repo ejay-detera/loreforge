@@ -61,6 +61,7 @@ class CommunityController extends Controller
             return [
                 'id'             => $campaign->id,
                 'session_id'     => $campaign->session_id,
+                'title'          => $campaign->title ?? $campaign->gameSession->character_name . "'s Adventure",
                 'character_name' => $campaign->gameSession->character_name,
                 'genre'          => $campaign->gameSession->genre,
                 'author'         => $campaign->sharedByUser->username,
@@ -105,19 +106,17 @@ class CommunityController extends Controller
                 ->orderBy('turn_number', 'asc')
                 ->get();
 
-            // Current user's own rating (if any)
-            $userRating = null;
-            if (Auth::check()) {
-                $own = CampaignRating::where('campaign_id', $campaignId)
-                    ->where('user_id', Auth::id())
-                    ->first();
-                $userRating = $own?->rating;
-            }
+            // Current user's own rating
+            $own = CampaignRating::where('campaign_id', $campaignId)
+                ->where('user_id', Auth::id())
+                ->first();
+            $userRating = $own?->rating;
 
             $session = $campaign->gameSession;
             $details = [
                 'id'              => $campaign->id,
                 'session_id'      => $session->id,
+                'title'           => $campaign->title ?? $session->character_name . "'s Adventure",
                 'character_name'  => $session->character_name,
                 'genre'           => $session->genre,
                 'author'          => $campaign->sharedByUser->username,
@@ -164,6 +163,11 @@ class CommunityController extends Controller
             ['campaign_id' => $campaignId, 'user_id' => Auth::id()],
             ['rating'      => $validated['rating']]
         );
+        
+        $campaign = SharedCampaign::findOrFail($campaignId);
+        if ($campaign->shared_by !== Auth::id()) {
+            \App\Jobs\SendCampaignActivityEmail::dispatch($campaign, 'rating', ['rating' => $validated['rating']]);
+        }
 
         // Return fresh aggregates
         $avg   = CampaignRating::where('campaign_id', $campaignId)->avg('rating');
@@ -225,10 +229,15 @@ class CommunityController extends Controller
         $comment = CampaignComment::create([
             'campaign_id' => $campaignId,
             'user_id'     => Auth::id(),
-            'body'        => $validated['body'],
+            'body'        => strip_tags($validated['body']),
         ]);
 
         $comment->load('user:id,username');
+
+        $campaign = SharedCampaign::findOrFail($campaignId);
+        if ($campaign->shared_by !== Auth::id()) {
+            \App\Jobs\SendCampaignActivityEmail::dispatch($campaign, 'comment', ['body' => $comment->body]);
+        }
 
         return response()->json([
             'success' => true,
@@ -268,13 +277,6 @@ class CommunityController extends Controller
      */
     public function replay(Request $request, $campaignId)
     {
-        if (!Auth::check()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthenticated.',
-            ], 401);
-        }
-
         $validated = $request->validate([
             'character_name' => 'nullable|string|max:255',
         ]);

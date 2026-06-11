@@ -173,7 +173,7 @@ export default function Community() {
                                         className={`bg-[#0A0D14]/80 backdrop-blur-md rounded-2xl p-6 border border-white/10 cursor-pointer transition-colors duration-300 flex flex-col h-full group ${theme.hover}`}
                                     >
                                         <div className="flex justify-between items-start mb-4">
-                                            <h3 className="text-xl font-black text-white truncate pr-4 group-hover:text-accent-emerald-green transition-colors">{camp.character_name}</h3>
+                                            <h3 className="text-xl font-black text-white truncate pr-4 group-hover:text-accent-emerald-green transition-colors">{camp.title}</h3>
                                             <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${theme.badge}`}>
                                                 {camp.genre}
                                             </span>

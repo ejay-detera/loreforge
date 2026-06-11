@@ -113,4 +113,9 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    'notify' => [
+        'daily_limit' => env('MAIL_NOTIFY_DAILY_LIMIT', 5),
+        'cooldown_minutes' => env('MAIL_NOTIFY_COOLDOWN_MINUTES', 30),
+    ],
+
 ];

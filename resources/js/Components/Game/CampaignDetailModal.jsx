@@ -428,10 +428,12 @@ const CampaignDetailModal = ({ campaignId, isOpen, onClose }) => {
                                 <FontAwesomeIcon icon={faScroll} />
                             </div>
                             <div>
-                                <div className="text-[18px] font-black text-white tracking-wider leading-[1.1]">Community Campaign</div>
+                                <div className="text-[18px] font-black text-white tracking-wider leading-[1.1]">
+                                    {campaign ? campaign.title : 'Community Campaign'}
+                                </div>
                                 {campaign && (
                                     <div className="text-[10px] text-white/35 uppercase tracking-[0.15em] mt-0.5">
-                                        {campaign.character_name} · {campaign.genre} Adventure · By {campaign.author}
+                                        Character: {campaign.character_name} · {campaign.genre} Adventure · By {campaign.author}
                                     </div>
                                 )}
                             </div>

@@ -24,12 +24,24 @@ class DashboardController extends Controller
         
         // Last session info
         $lastSession = $this->getLastSession($user);
+
+        // Achievements
+        $achievements = \App\Models\UserAchievement::where('user_id', $user->id)
+            ->pluck('achievement_id')
+            ->toArray();
+        
+        $achievementsData = array_map(function($id) {
+            $def = \App\Services\AchievementService::ACHIEVEMENTS[$id] ?? null;
+            return $def ? array_merge(['id' => $id], $def) : null;
+        }, $achievements);
+        $achievementsData = array_filter($achievementsData);
         
         return inertia('Dashboard', [
             'stats' => $stats,
             'recentSessions' => $recentSessions,
             'spotlightCampaigns' => $spotlightCampaigns,
             'lastSession' => $lastSession,
+            'achievements' => array_values($achievementsData),
         ]);
     }
     

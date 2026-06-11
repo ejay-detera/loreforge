@@ -219,6 +219,19 @@ export default function NewGame() {
     const [nameEditing, setNameEditing] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [isTablet, setIsTablet] = useState(false);
+    const [activeSession, setActiveSession] = useState(null);
+    const [showWarningModal, setShowWarningModal] = useState(false);
+
+    useEffect(() => {
+        fetch('/api/game/active-session')
+            .then(res => res.json())
+            .then(data => {
+                if (data.hasActiveSession && data.session) {
+                    setActiveSession(data.session);
+                }
+            })
+            .catch(err => console.error("Failed to check active session", err));
+    }, []);
 
     useEffect(() => {
         const checkResponsive = () => {
@@ -244,17 +257,26 @@ export default function NewGame() {
 
     const handleStartGame = async () => {
         setLocalError('');
-        setLoading(true);
         if (!selectedGenreId || !characterName) {
             setLocalError('Please enter a character name.');
-            setLoading(false);
             return;
         }
         if (characterName.length < 2) {
             setLocalError('Character name must be at least 2 characters long.');
-            setLoading(false);
             return;
         }
+        
+        if (activeSession) {
+            setShowWarningModal(true);
+            return;
+        }
+        
+        proceedWithStartGame();
+    };
+
+    const proceedWithStartGame = async () => {
+        setShowWarningModal(false);
+        setLoading(true);
         try {
             const response = await fetch('/api/game/start', {
                 method: 'POST',
@@ -292,6 +314,57 @@ export default function NewGame() {
             }, [])}
 
 
+
+            {/* Warning Modal */}
+            {showWarningModal && activeSession && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 9999,
+                    background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20
+                }}>
+                    <div style={{
+                        background: '#1a1a2e', border: `2px solid ${selected.accent}`,
+                        borderRadius: 12, padding: 32, maxWidth: 400, width: '100%',
+                        textAlign: 'center', boxShadow: `0 0 40px ${selected.accentGlow}`
+                    }}>
+                        <h2 style={{ color: selected.accent, fontSize: 24, marginBottom: 16, fontFamily: 'Poppins, sans-serif', fontWeight: 800, textTransform: 'uppercase' }}>
+                            Active Adventure Found
+                        </h2>
+                        <p style={{ color: '#fff', opacity: 0.8, marginBottom: 24, fontSize: 14, lineHeight: 1.6 }}>
+                            You currently have an active adventure as <strong style={{ color: selected.accent }}>{activeSession.character_name}</strong>. Starting a new game will abandon your current progress.
+                        </p>
+                        <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                            <button
+                                onClick={() => router.visit('/game')}
+                                style={{
+                                    flex: 1, padding: '12px 0', background: 'transparent', border: '1px solid rgba(255,255,255,0.2)',
+                                    color: '#fff', borderRadius: 6, fontWeight: 600, cursor: 'pointer'
+                                }}
+                            >
+                                Resume Game
+                            </button>
+                            <button
+                                onClick={proceedWithStartGame}
+                                style={{
+                                    flex: 1, padding: '12px 0', background: selected.accent, border: 'none',
+                                    color: '#000', borderRadius: 6, fontWeight: 800, cursor: 'pointer'
+                                }}
+                            >
+                                Abandon & Start New
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setShowWarningModal(false)}
+                            style={{
+                                marginTop: 16, background: 'transparent', border: 'none',
+                                color: 'rgba(255,255,255,0.5)', fontSize: 12, textDecoration: 'underline', cursor: 'pointer'
+                            }}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* ── Full-screen layout ── */}
             <div

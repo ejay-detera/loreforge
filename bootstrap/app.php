@@ -28,7 +28,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\SecureTransportHeaders::class,
         ]);
 
-        $middleware->alias(['mfa' => RequireMfa::class, 'session.timeout' => \App\Http\Middleware\SessionTimeout::class, 'prevent.mfa.back' => PreventMfaBackNavigation::class]);
+        $middleware->alias([
+            'mfa' => RequireMfa::class, 
+            'session.timeout' => \App\Http\Middleware\SessionTimeout::class, 
+            'prevent.mfa.back' => PreventMfaBackNavigation::class,
+            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
+        ]);
         $middleware->append(\App\Http\Middleware\PreventBackHistory::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {

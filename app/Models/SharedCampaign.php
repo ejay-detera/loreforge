@@ -11,6 +11,7 @@ class SharedCampaign extends Model
     protected $fillable = [
         'session_id',
         'shared_by',
+        'title',
         'story_preview',
         'shared_at',
     ];

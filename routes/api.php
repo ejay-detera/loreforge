@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\GameSessionController;
 use App\Http\Controllers\Api\CommunityController;
+use App\Http\Controllers\Api\CharacterController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware(['web', 'auth', 'session.timeout'])
     ->prefix('game')
     ->group(function () {
+    
+    Route::get('/active-session', [GameSessionController::class, 'getActiveSession']);
     
     // Start a new game session
     Route::post('/start', [GameSessionController::class, 'start']);
@@ -44,10 +47,10 @@ Route::middleware(['web', 'auth', 'session.timeout'])
     Route::post('/{campaignId}/replay', [CommunityController::class, 'replay']);
 
     // Ratings
-    Route::post('/{campaignId}/rate', [CommunityController::class, 'rateOrUpdate']);
+    Route::post('/{campaignId}/rate', [CommunityController::class, 'rateOrUpdate'])->middleware('throttle:30,1');
 
     // Comments
     Route::get('/{campaignId}/comments', [CommunityController::class, 'getComments']);
-    Route::post('/{campaignId}/comments', [CommunityController::class, 'addComment']);
-    Route::delete('/{campaignId}/comments/{commentId}', [CommunityController::class, 'deleteComment']);
+    Route::post('/{campaignId}/comments', [CommunityController::class, 'addComment'])->middleware('throttle:30,1');
+    Route::delete('/{campaignId}/comments/{commentId}', [CommunityController::class, 'deleteComment'])->middleware('throttle:30,1');
 });

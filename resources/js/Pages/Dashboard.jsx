@@ -4,7 +4,8 @@ import { Head } from '@inertiajs/react';
 import { useScrollReveal, revealStyle } from '@/hooks/UseScrollReveal';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faShieldAlt, faRocket, faEye } from '@fortawesome/free-solid-svg-icons';
+import { faHistory } from '@fortawesome/free-solid-svg-icons';
+import { getGenreLabel } from '@/Utils/genres';
 // ─── Constants ────────────────────────────────────────────────────────────────
 const RUNES = ['ᚠ', 'ᚢ', 'ᚦ', 'ᚨ', 'ᚱ', 'ᚲ', 'ᚷ', 'ᚹ', 'ᚺ', 'ᚾ', 'ᛁ', 'ᛃ', 'ᛇ', 'ᛈ', 'ᛉ', 'ᛊ', 'ᛏ', 'ᛒ', 'ᛖ', 'ᛗ', 'ᛚ', 'ᛜ', 'ᛞ', 'ᛟ'];
 const RUNE_COLORS = ['#f5c842', '#10b981', '#a78bfa'];
@@ -140,7 +141,8 @@ const GENRE_STYLES = {
 };
 
 function GenrePill({ genre }) {
-  const s = GENRE_STYLES[genre] ?? GENRE_STYLES.Fantasy;
+  const formattedGenre = getGenreLabel(genre);
+  const s = GENRE_STYLES[formattedGenre] ?? GENRE_STYLES.Fantasy;
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>
       <i className={`${s.icon} text-xs`} /> {genre}
@@ -197,8 +199,9 @@ function AdventureRow({ character, genre, turns, maxTurns, outcome, isMobile }) 
   const pct = Math.round((turns / maxTurns) * 100);
   const OUTCOME_COLORS = { Victory: '#10b981', Defeat: '#e05555', Abandoned: '#8899aa', Active: '#3b82f6' };
   const OUTCOME_ICONS = { Victory: 'fas fa-trophy', Defeat: 'fas fa-skull', Abandoned: 'fas fa-clock', Active: 'fas fa-running' };
-  const CHAR_COLORS = { Fantasy: '#f5c842', 'Sci-Fi': '#00BFFF', Horror: '#e05555' };
-  const trackColor = { Fantasy: 'linear-gradient(90deg,#f5c842,#d4920d)', 'Sci-Fi': 'linear-gradient(90deg,#3b9eff,#00BFFF)', Horror: 'linear-gradient(90deg,#e05555,#8B0000)' };
+  const formattedGenre = getGenreLabel(genre);
+  const CHAR_COLORS = { Fantasy: '#f5c842', 'Sci-fi': '#00BFFF', Horror: '#e05555' };
+  const trackColor = { Fantasy: 'linear-gradient(90deg,#f5c842,#d4920d)', 'Sci-fi': 'linear-gradient(90deg,#3b9eff,#00BFFF)', Horror: 'linear-gradient(90deg,#e05555,#8B0000)' };
   const [hovered, setHovered] = useState(false);
 
   if (isMobile) {
@@ -211,10 +214,10 @@ function AdventureRow({ character, genre, turns, maxTurns, outcome, isMobile }) 
       >
         <div className="flex items-center justify-between">
           <div className="text-sm font-medium flex items-center gap-2" style={{ color: '#e8e6f0' }}>
-            <i className="fas fa-user text-xs" style={{ color: CHAR_COLORS[genre] ?? '#8899aa' }} />
+            <i className="fas fa-user text-xs" style={{ color: CHAR_COLORS[formattedGenre] ?? '#8899aa' }} />
             {character}
           </div>
-          <GenrePill genre={genre} />
+          <GenrePill genre={formattedGenre} />
         </div>
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center gap-2">
@@ -240,7 +243,7 @@ function AdventureRow({ character, genre, turns, maxTurns, outcome, isMobile }) 
       onMouseLeave={() => setHovered(false)}
     >
       <div className="px-5 py-3.5 text-sm font-medium flex items-center gap-2" style={{ color: '#e8e6f0' }}>
-        <i className="fas fa-user text-xs" style={{ color: CHAR_COLORS[genre] ?? '#8899aa' }} />
+        <i className="fas fa-user text-xs" style={{ color: CHAR_COLORS[formattedGenre] ?? '#8899aa' }} />
         {character}
       </div>
       <div className="px-5 py-3.5 flex items-center"><GenrePill genre={genre} /></div>
@@ -259,10 +262,12 @@ function AdventureRow({ character, genre, turns, maxTurns, outcome, isMobile }) 
 }
 
 // ─── Spotlight Card ───────────────────────────────────────────────────────────
-function SpotlightCard({ icon, name, author, genre, turns, outcome, accentColor, preview, delay }) {
+function SpotlightCard({ id, icon, name, author, genre, turns, outcome, accentColor, preview, delay }) {
   const [hovered, setHovered] = useState(false);
   const { ref, visible } = useScrollReveal(0.1);
-  const s = GENRE_STYLES[genre] ?? GENRE_STYLES.Fantasy;
+  const formattedGenre = getGenreLabel(genre);
+  const s = GENRE_STYLES[formattedGenre] ?? GENRE_STYLES.Fantasy;
+  const CHAR_COLORS = { Fantasy: '#f5c842', 'Sci-fi': '#00BFFF', Horror: '#e05555' };
 
   return (
     <div ref={ref} style={revealStyle(visible, delay, 'up', 28)}>
@@ -283,15 +288,16 @@ function SpotlightCard({ icon, name, author, genre, turns, outcome, accentColor,
 
         <div className="relative z-10">
           <div className="flex items-start justify-between gap-3 mb-5">
-            <div className="flex items-start gap-3">
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: `${s.bg}`, border: `1px solid ${s.border}` }}>
-                <i className={icon} style={{ color: accentColor }} />
+            <div className="flex-1 flex items-center gap-3 min-w-[140px]">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)' }}>
+                <i className="fas fa-user" style={{ color: CHAR_COLORS[formattedGenre] ?? '#8899aa' }} />
               </div>
               <div>
-                <div className="text-sm font-semibold mb-0.5" style={{ color: '#e8e6f0', lineHeight: 1.3 }}>{name}</div>
-                <div className="text-xs" style={{ color: '#6b7a99' }}>by <span style={{ color: '#a78bfa' }}>{author}</span></div>
+                <p className="text-sm font-medium" style={{ color: '#e8e6f0' }}>{name}</p>
+                <div className="mt-1"><GenrePill genre={formattedGenre} /></div>
               </div>
             </div>
+            <div className="text-xs" style={{ color: '#6b7a99' }}>by <span style={{ color: '#a78bfa' }}>{author}</span></div>
           </div>
 
           {preview && (
@@ -308,14 +314,15 @@ function SpotlightCard({ icon, name, author, genre, turns, outcome, accentColor,
                 {outcome === 'Victory' ? '🏆' : '💀'} {outcome}
               </span>
             </div>
-            <button
+            <Link
+              href={`/community?open=${id}`}
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg"
               style={{ background: 'rgba(255,255,255,.06)', color: 'rgba(255,255,255,.75)', border: '1.5px solid rgba(255,255,255,.13)', cursor: 'pointer', transition: 'all .2s', fontFamily: 'Poppins, sans-serif' }}
               onMouseEnter={e => { e.currentTarget.style.borderColor = accentColor; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = `${accentColor}15`; }}
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.13)'; e.currentTarget.style.color = 'rgba(255,255,255,.75)'; e.currentTarget.style.background = 'rgba(255,255,255,.06)'; }}
             >
               <i className="fas fa-play text-xs" /> Replay
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -324,7 +331,7 @@ function SpotlightCard({ icon, name, author, genre, turns, outcome, accentColor,
 }
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
-export default function Dashboard({ auth, stats, recentSessions, spotlightCampaigns, lastSession }) {
+export default function Dashboard({ auth, stats, recentSessions, spotlightCampaigns, lastSession, achievements }) {
   const heroRef = useRef(null);
   const { ref: statsRef, visible: statsVisible } = useScrollReveal(0.1);
   const { ref: tableRef, visible: tableVisible } = useScrollReveal(0.1);
@@ -459,6 +466,29 @@ export default function Dashboard({ auth, stats, recentSessions, spotlightCampai
               </div>
             </div>
 
+            <div className="h-px mb-8" style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,.07), transparent)' }} />
+
+            {/* ══ SECTION: ACHIEVEMENTS ══ */}
+            {achievements && achievements.length > 0 && (
+              <div className="mb-8">
+                <SectionLabel>Trophies of Legend</SectionLabel>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {achievements.map((ach) => (
+                    <div 
+                      key={ach.id}
+                      className="bg-[#0c101e]/80 backdrop-blur-md rounded-2xl p-5 border border-white/10 flex flex-col items-center text-center hover:-translate-y-1 transition-transform shadow-[0_4px_16px_rgba(0,0,0,0.4)] hover:shadow-[0_0_20px_rgba(167,139,250,0.2)] hover:border-[#a78bfa]/40"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-[#a78bfa]/10 flex items-center justify-center mb-3 border border-[#a78bfa]/30">
+                        <i className={`fas ${ach.icon} text-2xl text-[#a78bfa]`} />
+                      </div>
+                      <h4 className="font-bold text-white mb-1 leading-tight">{ach.name}</h4>
+                      <p className="text-xs text-white/50">{ach.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="h-px mb-8" style={{ background: 'linear-gradient(to right, transparent, rgba(255,255,255,.07), transparent)' }} />
 
             {/* ══ SECTION 3: RECENT ADVENTURES ══ */}

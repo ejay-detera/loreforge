@@ -1,16 +1,19 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { router, usePage } from '@inertiajs/react';
+import { STARTING_HP, STARTING_MP, MAX_HP, MAX_MP } from '../Utils/gameConstants';
 
 const useGame = () => {
     const { props } = usePage();
 
     const [currentBatch, setCurrentBatch] = useState([]);
     const [currentTurnIndex, setCurrentTurnIndex] = useState(0);
-    const [currentHP, setCurrentHP] = useState(100);
-    const [currentMP, setCurrentMP] = useState(50);
-    const [maxHP, setMaxHP] = useState(100);
-    const [maxMP, setMaxMP] = useState(50);
+    const [currentHP, setCurrentHP] = useState(STARTING_HP);
+    const [currentMP, setCurrentMP] = useState(STARTING_MP);
+    const [maxHP, setMaxHP] = useState(MAX_HP);
+    const [maxMP, setMaxMP] = useState(MAX_MP);
+    const [enemyCurrentHP, setEnemyCurrentHP] = useState(null);
     const [inventory, setInventory] = useState([]);
+    const [achievements, setAchievements] = useState([]);
     const [currentTurn, setCurrentTurn] = useState(0);
     const [maxTurns, setMaxTurns] = useState(20);
     const [session, setSession] = useState(null);
@@ -33,11 +36,13 @@ const useGame = () => {
             setCurrentMP(s.current_mana);
             setMaxHP(s.max_health);
             setMaxMP(s.max_mana);
+            setEnemyCurrentHP(s.enemy_current_hp);
             setCurrentTurn(s.turn_count);
             setMaxTurns(s.max_turns);
             setIsGameOver(s.status !== 'active');
             setIsVictory(s.status === 'victory');
             if (s.inventory_items || s.inventoryItems) setInventory(s.inventory_items || s.inventoryItems);
+            if (s.achievements) setAchievements(s.achievements);
         }
     }, [props.initialSession]);
 
@@ -92,11 +97,9 @@ const useGame = () => {
     useEffect(() => {
         if (session && !isGameOver) {
             if (currentBatch.length === 0) {
-                console.log('Generating batch for session:', { sessionId: session.id, genre: session.genre });
                 checkAndGenerateBatch(session);
             } else if (currentTurnIndex >= currentBatch.length) {
                 // Reached the end of the current batch, fetch the next one
-                console.log('Batch exhausted. Fetching next batch...');
                 batchGenerated.current = false;
                 setCurrentBatch([]);
                 setCurrentTurnIndex(0);
@@ -153,18 +156,19 @@ const useGame = () => {
 
             if (data.success) {
                 const s = data.session;
-                console.log('Session updated after choice:', {
-                    oldGenre: session?.genre,
-                    newGenre: s.genre,
-                    sessionData: s
-                });
                 setSession(prev => ({ ...prev, ...s }));
                 setCurrentHP(s.current_health);
                 setCurrentMP(s.current_mana);
+                setEnemyCurrentHP(s.enemy_current_hp);
                 setCurrentTurn(s.turn_count);
                 setIsGameOver(s.is_game_over);
                 setIsVictory(s.is_victory);
                 setInventory(data.inventory);
+                
+                if (data.new_achievements && data.new_achievements.length > 0) {
+                    setAchievements(prev => [...prev, ...data.new_achievements]);
+                }
+
                 setCurrentTurnIndex(prev => prev + 1);
             } else {
                 console.error('resolveTurn server error:', data);
@@ -212,11 +216,13 @@ const useGame = () => {
                 setCurrentMP(s.current_mana);
                 setMaxHP(s.max_health);
                 setMaxMP(s.max_mana);
+                setEnemyCurrentHP(null);
                 setCurrentTurn(s.turn_count);
                 setMaxTurns(s.max_turns);
                 setIsGameOver(false);
                 setIsVictory(false);
                 setInventory(s.inventory_items || s.inventoryItems || []);
+                setAchievements([]);
                 setCurrentBatch([]);
                 setCurrentTurnIndex(0);
                 router.visit('/game');
@@ -242,11 +248,13 @@ const useGame = () => {
     const resetGame = useCallback(() => {
         setCurrentBatch([]);
         setCurrentTurnIndex(0);
-        setCurrentHP(100);
-        setCurrentMP(50);
-        setMaxHP(100);
-        setMaxMP(50);
+        setCurrentHP(STARTING_HP);
+        setCurrentMP(STARTING_MP);
+        setMaxHP(MAX_HP);
+        setMaxMP(MAX_MP);
+        setEnemyCurrentHP(null);
         setInventory([]);
+        setAchievements([]);
         setCurrentTurn(0);
         setMaxTurns(20);
         setSession(null);
@@ -256,6 +264,12 @@ const useGame = () => {
         batchGenerated.current = false;
     }, []);
 
+    const retryBatch = useCallback(() => {
+        setError(null);
+        batchGenerated.current = false;
+        checkAndGenerateBatch(session);
+    }, [checkAndGenerateBatch, session]);
+
     return {
         currentBatch,
         currentTurnIndex,
@@ -263,7 +277,11 @@ const useGame = () => {
         currentMP,
         maxHP,
         maxMP,
+        enemyCurrentHP,
+        setEnemyCurrentHP,
         inventory,
+        achievements,
+        setAchievements,
         currentTurn,
         maxTurns,
         session,
@@ -276,6 +294,7 @@ const useGame = () => {
         resolveChoice,
         startNewGame,
         resetGame,
+        retryBatch,
         setError,
         checkAndGenerateBatch,
     };

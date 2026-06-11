@@ -481,7 +481,12 @@ export default function AuthenticatedLayout({ header, children }) {
     { name: activeSession ? 'Game' : 'New Game',  href: activeSession ? route('game') : route('new-game'),    icon: activeSession ? 'fas fa-gamepad' : 'fas fa-plus-circle' },
     { name: 'History',   href: route('history'),     icon: 'fas fa-history'     },
     { name: 'Community', href: route('community'),   icon: 'fas fa-users'       },
+    { name: 'Achievements', href: route('achievements'), icon: 'fas fa-trophy'  },
   ];
+
+  if (user?.is_admin) {
+      navigation.push({ name: 'Admin', href: route('admin'), icon: 'fas fa-user-shield' });
+  }
 
   return (
     <>

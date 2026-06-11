@@ -15,6 +15,7 @@ class GameSession extends Model
         'max_health',
         'current_mana',
         'max_mana',
+        'enemy_current_hp',
         'turn_count',
         'max_turns',
         'is_public',
@@ -26,6 +27,7 @@ class GameSession extends Model
         'max_health' => 'integer',
         'current_mana' => 'integer',
         'max_mana' => 'integer',
+        'enemy_current_hp' => 'integer',
         'turn_count' => 'integer',
         'max_turns' => 'integer',
     ];

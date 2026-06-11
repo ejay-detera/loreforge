@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use App\Models\GameSession;
 use App\Models\InventoryItem;
+use App\Helpers\GameConstants;
 
 class GeminiService
 {
@@ -81,12 +82,7 @@ class GeminiService
      */
     public function giveStarterItems(GameSession $session): void
     {
-        $starterItems = [
-            ['item_name' => 'Healing Potion', 'description' => 'Restores +25 HP when used.'],
-            ['item_name' => 'Healing Potion', 'description' => 'Restores +25 HP when used.'],
-            ['item_name' => 'Mana Potion',    'description' => 'Restores +20 MP when used.'],
-            ['item_name' => 'Mana Potion',    'description' => 'Restores +20 MP when used.'],
-        ];
+        $starterItems = GameConstants::STARTER_ITEMS;
 
         foreach ($starterItems as $item) {
             InventoryItem::create([
@@ -109,7 +105,7 @@ class GeminiService
      * This is designed to be called ONCE per game session to minimize API usage.
      * Each turn includes branching outcomes so the player navigates client-side.
      */
-    public function generateBatch(GameSession $session, string $playerChoice, array $inventory, int $batchSize = 20): array
+    public function generateBatch(GameSession $session, string $playerChoice, array $inventory, int $batchSize): array
     {
         $prompt = $this->buildGamePrompt($session, $playerChoice, $inventory, $batchSize);
 
@@ -237,6 +233,20 @@ class GeminiService
     }
 
     /**
+     * Determine the enemy tier for a given turn.
+     */
+    protected function getEnemyTierForTurn(int $turn, int $maxTurns): string
+    {
+        $ratio = $turn / max(1, $maxTurns);
+        if ($ratio <= GameConstants::WEAK_ARC_END_RATIO) {
+            return 'weak';
+        } elseif ($ratio <= GameConstants::MID_ARC_END_RATIO) {
+            return 'mid';
+        }
+        return 'boss';
+    }
+
+    /**
      * Build the Dungeon Master system prompt with full game state.
      */
     protected function buildGamePrompt(GameSession $session, string $playerChoice, array $inventory, int $batchSize): string
@@ -266,15 +276,16 @@ class GeminiService
         $availableEnemies = $this->getAvailableEnemies($session->genre);
         $enemyList = implode(', ', $availableEnemies);
         $progression = $this->getEnemyProgression($session->genre);
-        $weakEnemies = implode(', ', $progression['weak']);
-        $midEnemies  = implode(', ', $progression['mid']);
-        $bossEnemies = implode(', ', $progression['boss']);
+        
+        $startTurn = $currentTurn + 1;
+        $tier = $this->getEnemyTierForTurn($startTurn, $maxTurns);
+        $tierEnemies = implode(', ', $progression[$tier] ?? []);
 
         // Flee threshold: 10% of max HP
-        $fleeThreshold = (int) floor($maxHP * 0.10);
+        $fleeThreshold = (int) floor($maxHP * GameConstants::FLEE_HP_THRESHOLD);
 
         // MP threshold for magic abilities
-        $mpThreshold = 10;
+        $mpThreshold = GameConstants::MP_MAGIC_THRESHOLD;
 
         // Determine which choices are available based on MP
         $mpLine = $currentMP >= $mpThreshold
@@ -299,10 +310,6 @@ class GeminiService
             ? "IMPORTANT: The story is nearing its end ({$turnsLeft} turns remaining). Begin building toward a meaningful conclusion."
             : "The story has {$turnsLeft} turns remaining. Keep the narrative engaging and escalating.";
 
-        // Calculate enemy arc turn ranges
-        $weakEnd = (int) floor($maxTurns * 0.35);     // ~7 for 20 turns
-        $midEnd  = (int) floor($maxTurns * 0.70);      // ~14 for 20 turns
-
         $prompt = <<<PROMPT
 You are an expert Dungeon Master running a {$genre} interactive story game.
 
@@ -324,12 +331,8 @@ ENEMY RULES (STRICTLY ENFORCED)
 - There is ALWAYS exactly ONE enemy on the battlefield at a time. NEVER describe 2 or more enemies fighting the player simultaneously.
 - ONLY use exact enemy names from this list: {$enemyList}
 - NEVER invent new enemy names outside this list.
-- CAMPAIGN PROGRESSION — The player must face 2 to 3 DISTINCT enemies across the full campaign:
-  * Turns 1 to {$weakEnd}: Use a WEAK enemy from: {$weakEnemies}
-  * Turns {$weakEnd} to {$midEnd}: Use a MID-TIER enemy from: {$midEnemies}
-  * Turns {$midEnd} to {$maxTurns}: Use the FINAL BOSS from: {$bossEnemies}
-- When an enemy is defeated narratively, introduce the NEXT tier enemy in the following turn.
-- Each arc MUST use a DIFFERENT enemy name so the frontend can display different sprites.
+- For this batch of turns, you MUST use an enemy from this specific tier list: {$tierEnemies}
+- When an enemy is defeated narratively, introduce a new enemy from the list in the following turn.
 
 ═══════════════════════════════════════════════
 MANA (MP) RULES (STRICTLY ENFORCED)
@@ -340,6 +343,20 @@ MANA (MP) RULES (STRICTLY ENFORCED)
 - Basic melee attacks cost NO mana: set mana_change to 0. Set action_type to "attack".
 - Utility actions (dodge, scan) cost NO mana: set mana_change to 0. Set action_type to "utility".
 - Inventory item usage costs NO mana: set mana_change to 0. Set action_type to "item".
+
+═══════════════════════════════════════════════
+OFFENSIVE MOVE STAT RULES (CRITICAL — NEVER VIOLATE)
+═══════════════════════════════════════════════
+- Any choice with action_type "attack" or "magic" is an OFFENSIVE MOVE.
+- OFFENSIVE MOVES must ALWAYS have:
+  * enemy_hp_change: NEGATIVE (the player is dealing damage to the enemy)
+  * health_change: 0 or NEGATIVE (the player takes no damage, or takes recoil/counter-attack damage). NEVER positive. Offensive moves do NOT heal.
+  * mana_change: 0 (for "attack") or NEGATIVE (for "magic" — it costs mana). NEVER positive. Offensive moves do NOT restore mana.
+- EXAMPLE: "Channel Fire Ball" → action_type: "magic", health_change: 0, mana_change: -10, enemy_hp_change: -45. It is an offensive spell — it COSTS mana and deals enemy damage. It does NOT heal the player.
+- EXAMPLE: "Holy Smite" → action_type: "magic", health_change: 0, mana_change: -8, enemy_hp_change: -35. It does NOT restore health or mana.
+- EXAMPLE: "Slash Attack" → action_type: "attack", health_change: -5, mana_change: 0, enemy_hp_change: -30. A melee attack. No healing.
+- The ONLY actions allowed to give POSITIVE health_change are: item usage ("Healing Potion") and the "heal" action_type.
+- The ONLY actions allowed to give POSITIVE mana_change are: item usage ("Mana Potion").
 
 ═══════════════════════════════════════════════
 INVENTORY & ITEM RULES (STRICTLY ENFORCED)
@@ -383,11 +400,11 @@ DIFFICULTY & STAT RULES
 ═══════════════════════════════════════════════
 STORY PACING (MUST FOLLOW)
 ═══════════════════════════════════════════════
-You MUST generate EXACTLY {$batchSize} turns. The story MUST reach a definitive ending on the FINAL turn ({$maxTurns}).
-- Turns 1-5: Introduce setting, first weak enemy encounter.
-- Turns 6-{$weakEnd}: Escalate conflict, find items, defeat weak enemy.
-- Turns {$weakEnd}-{$midEnd}: Mid-tier enemy appears, higher tension.
-- Turns {$midEnd}-{$maxTurns}: Final Boss battle. Turn {$maxTurns} MUST have the definitive killing blow option.
+You MUST generate EXACTLY {$batchSize} turns, starting from turn {$startTurn}.
+The story MUST reach a definitive ending on the FINAL turn ({$maxTurns}).
+- Ensure the narrative connects smoothly from the player's last choice.
+- Escalate the tension appropriately based on how close we are to the final turn.
+- On the final turn ({$maxTurns}), provide the definitive killing blow option to conclude the story.
 
 ═══════════════════════════════════════════════
 ACTION TYPE & RESULT (REQUIRED IN EVERY OUTCOME)
@@ -397,11 +414,12 @@ Every outcome object MUST include:
 - "action_result": one of "success", "fail", "neutral"
 
 STRICT CLASSIFICATION RULES:
-- If a choice name contains words like: attack, strike, slash, cut, thrust, melee, blow, assault, smash, bash, charge, lunge, or names an offensive weapon-based combat option, the action_type MUST be "attack". NEVER set it to "utility" or "scan".
-- If the action uses/fires magic, spells, mana, laser beams, rockets, or direct energy, and costs mana (negative mana_change), the action_type MUST be "magic".
+- If a choice name contains ANY of these words: attack, strike, slash, cut, thrust, melee, blow, assault, smash, bash, charge, lunge, punch, kick, stab, or names an offensive weapon-based combat option → action_type MUST be "attack", mana_change MUST be 0, health_change MUST be ≤ 0, enemy_hp_change MUST be < 0.
+- If a choice name contains ANY of these words: fireball, fire ball, smite, holy, channel, blast, bolt, beam, spell, arcane, lightning, thunder, flame, inferno, energy, laser, rocket, nova, pulse, ray, surge, magic, conjure, summon, cast → action_type MUST be "magic", mana_change MUST be NEGATIVE, health_change MUST be ≤ 0, enemy_hp_change MUST be < 0.
 - "Scan", "Analyze", "Inspect", "Examine", "Assess" type choices → action_type MUST be "utility". NEVER name a melee or direct attack choice using scan/inspect/analyze language.
 - Only use "utility" for pure defensive/dodging/utility/movement options, not physical damage dealing melee/combat options.
 - Only use "item" for consuming inventory potions ("Healing Potion", "Mana Potion").
+- NEVER give positive health_change or positive mana_change to attack or magic action types. This is the #1 most critical rule.
 
 These tell the frontend which visual effect to play:
 - attack + success = physical slash effect on enemy
